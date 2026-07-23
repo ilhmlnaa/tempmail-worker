@@ -115,7 +115,7 @@ export function DashboardPage({ inboxes, domains }: { inboxes: Inbox[]; domains:
       function viewInbox(addr) { window.location = '/inbox/' + encodeURIComponent(addr) }
       
       async function deleteInbox(addr) {
-        if(!confirm('Remove ${addr} from dashboard?')) return
+        if(!confirm('Remove ' + addr + ' from dashboard?')) return
         const res = await fetch('/dashboard/inboxes/' + encodeURIComponent(addr), { method:'DELETE' })
         if(res.ok) window.location.reload()
       }
