@@ -19,9 +19,15 @@ import { getSessionEmails, linkEmailToSession, createSession } from './db/querie
 import { LoginPage } from './web/login'
 import { DashboardPage } from './web/dashboard'
 import { InboxPage } from './web/inbox'
+import { css } from './web/styles'
 import type { Env } from './db/queries'
 
 const app = new Hono<{ Bindings: Env }>()
+
+// ── Static assets ─────────────────────────────────────────────
+app.get('/styles.css', (c) => {
+  return c.text(css, 200, { 'Content-Type': 'text/css; charset=utf-8' })
+})
 
 // ── Global CORS for API ───────────────────────────────────────
 app.use('/api/*', cors())
