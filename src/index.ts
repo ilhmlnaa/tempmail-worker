@@ -53,6 +53,9 @@ app.post('/auth/login', async (c) => {
   }
 
   if (!verifyPassword(c, password)) {
+    if (contentType.includes('application/json')) {
+      return c.json({ error: 'Invalid password' }, 401)
+    }
     return c.html(LoginPage({ error: 'Invalid password' }))
   }
 
@@ -75,15 +78,20 @@ app.post('/auth/logout', (c) => {
 // ── Web pages (auth required) ─────────────────────────────────
 app.get('/', async (c) => {
   const sid = requireAuth(c)
-  if (typeof sid === 'object') return sid // redirect to login
+  if (typeof sid === 'object') return sid
 
-  const domains = (c.env.MAIL_DOMAINS || '').split(',').map(d => d.trim()).filter(Boolean)
-  const inboxes = await getSessionEmails(c.env.DB, sid)
+  try {
+    const domains = (c.env.MAIL_DOMAINS || '').split(',').map(d => d.trim()).filter(Boolean)
+    const inboxes = await getSessionEmails(c.env.DB, sid)
 
-  return c.html(DashboardPage({
-    inboxes: inboxes as any[],
-    domains,
-  }))
+    return c.html(DashboardPage({
+      inboxes: inboxes as any[],
+      domains,
+    }))
+  } catch (err: any) {
+    console.error('[dash] error:', err?.message)
+    return c.html(DashboardPage({ inboxes: [], domains: [] }))
+  }
 })
 
 app.get('/inbox/:addr', async (c) => {
