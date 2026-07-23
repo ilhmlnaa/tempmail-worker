@@ -9,7 +9,6 @@
 
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import PostalMime from 'postal-mime'
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -49,9 +48,59 @@ function generateId(): string {
   return `${randomString(8)}-${randomString(4)}-${randomString(4)}`
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  KV STORE HELPERS
-// ═══════════════════════════════════════════════════════════════
+function parseEmail(rawText: string): { from: string; subject: string; body: string } {
+  const lines = rawText.split(/\r?\n/)
+  let from = ''
+  let subject = ''
+  let inHeaders = true
+  let bodyLines: string[] = []
+  let headerValue = ''
+
+  for (const line of lines) {
+    if (inHeaders) {
+      if (line === '') {
+        // End of headers
+        inHeaders = false
+        if (from) from = from.trim()
+        if (subject) subject = subject.trim()
+        continue
+      }
+      // Header continuation (starts with space/tab)
+      if ((line.startsWith(' ') || line.startsWith('\t')) && headerValue) {
+        headerValue += ' ' + line.trim()
+        continue
+      }
+      const lc = line.toLowerCase()
+      if (lc.startsWith('from:')) {
+        from = line.substring(5).trim()
+        headerValue = from
+      } else if (lc.startsWith('subject:')) {
+        subject = line.substring(8).trim()
+        headerValue = subject
+      }
+    } else if (bodyLines.length < 2000) {
+      // Cap body at ~2000 lines to prevent KV overflow
+      bodyLines.push(line)
+    }
+  }
+
+  // Decode MIME encoded words (=?UTF-8?B?...?=)
+  const decodeMime = (s: string): string => {
+    return s.replace(/=\?[^?]+\?[Bb]\?([^?]*)\?=/g, (_, enc) => {
+      try {
+        return atob(enc.replace(/\s/g, ''))
+      } catch {
+        return enc
+      }
+    }).replace(/_/g, ' ')
+  }
+
+  return {
+    from: decodeMime(from),
+    subject: decodeMime(subject || '(no subject)'),
+    body: bodyLines.join('\n').trim() || '(empty)',
+  }
+}
 
 async function appendMessage(
   kv: KVNamespace,
@@ -71,8 +120,9 @@ async function appendMessage(
     createdAt: new Date().toISOString(),
   })
 
-  await kv.put(key, JSON.stringify(messages), { expirationTtl: 600 })
-  console.log(`[mail] stored for ${addr} (${messages.length} total)`)
+  // Keep max 20 messages per inbox
+  const trimmed = messages.slice(-20)
+  await kv.put(key, JSON.stringify(trimmed), { expirationTtl: 600 })
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -112,7 +162,6 @@ app.post('/api/inboxes', async (c) => {
   const inbox: InboxRecord = { address, sessionId, domain, createdAt: Date.now() }
   await c.env.MAIL_LITE.put(`inbox:${local}`, JSON.stringify(inbox), { expirationTtl: 600 })
 
-  // Tie to session
   if (sessionId) {
     const raw = await c.env.MAIL_LITE.get(`sess:${sessionId}`)
     if (raw) {
@@ -122,7 +171,6 @@ app.post('/api/inboxes', async (c) => {
     }
   }
 
-  console.log(`[api] inbox: ${address}`)
   return c.json({ address })
 })
 
@@ -155,17 +203,18 @@ export default {
   },
 
   async email(message: ForwardableEmailMessage, env: Env, ctx: ExecutionContext): Promise<void> {
-    // Parse raw MIME email
-    const raw = new Uint8Array(await message.raw.arrayBuffer())
-    const parser = new PostalMime()
-    const parsed = await parser.parse(raw)
+    try {
+      // Get raw email as text (fast, no postal-mime dependency)
+      const rawText = await message.raw.text()
 
-    const to = message.to
-    const local = to.split('@')[0].toLowerCase()
-    const from = parsed.from?.text ?? message.from ?? '(unknown)'
-    const subject = parsed.subject ?? '(no subject)'
-    const body = parsed.text ?? '(empty)'
+      const { from, subject, body } = parseEmail(rawText)
+      const to = message.to
+      const local = to.split('@')[0].toLowerCase()
 
-    await appendMessage(env.MAIL_LITE, local, { from, subject, body })
+      await appendMessage(env.MAIL_LITE, local, { from, subject, body })
+    } catch (err: any) {
+      // Log error but don't throw — prevents bounce
+      console.error(`[email] error: ${err?.message || err}`)
+    }
   },
 }
