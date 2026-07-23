@@ -3,7 +3,7 @@ import { cors } from 'hono/cors'
 import type { Env } from '../db/queries'
 import {
   createEmail, emailExists, getMessages,
-  linkEmailToSession, getSessionEmails,
+  getAllEmails, linkEmailToSession,
   unlinkEmailFromSession, createSession,
 } from '../db/queries'
 import { requireAuth } from './auth'
@@ -87,7 +87,8 @@ api.delete('/api/inboxes/:addr', async (c) => {
 api.get('/dashboard/inboxes', async (c) => {
   const sid = requireAuth(c)
   if (typeof sid === 'object') return sid
-  const inboxes = await getSessionEmails(c.env.DB, sid)
+  // Tampilkan semua email di DB — gak cuma yang ter-link ke session
+  const inboxes = await getAllEmails(c.env.DB)
   return c.json(inboxes)
 })
 

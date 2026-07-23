@@ -64,6 +64,17 @@ export async function getSessionEmails(db: D1Database, sid: string) {
   return r.results
 }
 
+export async function getAllEmails(db: D1Database) {
+  const r = await db.prepare(
+    `SELECT e.address, e.domain, e.created_at as createdAt,
+            (SELECT COUNT(*) FROM messages m WHERE m.email_address = e.address) as messageCount,
+            (SELECT MAX(m.received_at) FROM messages m WHERE m.email_address = e.address) as lastMessageAt
+     FROM emails e
+     ORDER BY e.created_at DESC`
+  ).all()
+  return r.results
+}
+
 export async function unlinkEmailFromSession(db: D1Database, sid: string, address: string) {
   await db.prepare(
     'DELETE FROM session_emails WHERE session_id = ? AND email_address = ?'
