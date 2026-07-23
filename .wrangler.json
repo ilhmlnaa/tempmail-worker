@@ -1,0 +1,4 @@
+{
+  "schema": "https://raw.githubusercontent.com/cloudflare/wrangler/main/packages/wrangler/config-schema.json",
+  "$schema": "https://json.schemastore.org/wrangler.json"
+}
