@@ -9,7 +9,7 @@
 
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { PostalMime } from 'postal-mime'
+import PostalMime from 'postal-mime'
 
 // ── Types ──────────────────────────────────────────────────────
 
