@@ -16,3 +16,7 @@ id = "2ba95be2b48247e59bf172d190476f5f"
 
 [vars]
 AUTH_SECRET = "change-me-to-random-string"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
