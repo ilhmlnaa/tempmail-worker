@@ -1,4 +1,4 @@
-import { html } from 'hono/html'
+import { html, raw } from 'hono/html'
 
 export function Layout({ title, children, session }: { title: string; children: any; session?: boolean }) {
   return html`<!DOCTYPE html>
@@ -21,10 +21,10 @@ export function Layout({ title, children, session }: { title: string; children: 
         <button onclick="logout()">🚪 Logout</button>
       </div>
     </aside>
-    <main class="main">${children}</main>
+    <main class="main">${raw(children)}</main>
   </div>
   ` : html`
-  <div class="auth-page">${children}</div>
+  <div class="auth-page">${raw(children)}</div>
   `}
   <div id="toast"></div>
 </body>

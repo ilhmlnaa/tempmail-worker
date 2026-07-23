@@ -2,19 +2,13 @@ name = "tempmail-worker"
 compatibility_date = "2024-10-22"
 main = "src/index.ts"
 
-# ═══════════════════════════════════════════════════════════
-#  BINDINGS — di Cloudflare Dashboard:
-#    Workers & Pages → tempmail-worker → Settings → Bindings
-#
-#  1. D1: Variable name=DB, D1 database=tempmail-db
-#     (create D1 first: npx wrangler d1 create tempmail-db)
-#
-#  2. Email Worker:
-#     Workers & Pages → tempmail-worker → Settings → Email
-#     → Enable email processing
-#
-#  3. Email Routing: Dashboard → domain → Catch-all → Worker
-# ═══════════════════════════════════════════════════════════
+[[d1_databases]]
+binding = "DB"
+database_name = "tempmail-db"
+database_id = "a1147f43-2e28-4758-8e8e-d2a38df6e342"
+
+[email]
+action = "process"
 
 [observability]
 enabled = true
