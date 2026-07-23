@@ -4,7 +4,7 @@ import type { Env } from '../db/queries'
 import {
   createEmail, emailExists, getMessages,
   linkEmailToSession, getSessionEmails,
-  unlinkEmailFromSession,
+  unlinkEmailFromSession, createSession,
 } from '../db/queries'
 import { requireAuth } from './auth'
 
@@ -25,13 +25,15 @@ function randomString(len = 10): string {
 //  PUBLIC — MAILLDEZ compatible (for grok-signup.py)
 // ════════════════════════════════════════════════════════════
 
-api.get('/api/session', (c) => {
+api.get('/api/session', async (c) => {
   const sid = crypto.randomUUID()
+  await createSession(c.env.DB, sid)
   return c.json({ sessionId: sid, expiresAt: new Date(Date.now() + 600_000).toISOString() })
 })
 
-api.post('/api/session', (c) => {
+api.post('/api/session', async (c) => {
   const sid = crypto.randomUUID()
+  await createSession(c.env.DB, sid)
   return c.json({ sessionId: sid, expiresAt: new Date(Date.now() + 600_000).toISOString() })
 })
 
