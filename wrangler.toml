@@ -2,18 +2,27 @@ name = "tempmail-worker"
 compatibility_date = "2024-10-22"
 main = "src/index.ts"
 
-# ── KV binding (auto-expire emails) ──
-[[kv_namespaces]]
-binding = "MAIL_LITE"
-id = "2ba95be2b48247e59bf172d190476f5f"
+# ── D1 Database ──
+# Run: npx wrangler d1 create tempmail-db
+# Then copy database_id here
+[[d1_databases]]
+binding = "DB"
+database_name = "tempmail-db"
+database_id = ""
 
-# ── Email Worker (catch-all for your domain) ──
+# ── KV binding (legacy, not used with D1) ──
+# [[kv_namespaces]]
+# binding = "MAIL_LITE"
+# id = "2ba95be2b48247e59bf172d190476f5f"
+
+# ── Email Worker ──
 [email]
 action = "process"
-
-[vars]
-AUTH_SECRET = "change-me-to-random-string"
 
 [observability]
 enabled = true
 head_sampling_rate = 1
+
+[vars]
+AUTH_SECRET = "change-me-to-random-string"
+MAIL_DOMAINS = "zenime.online,devnet.my.id"

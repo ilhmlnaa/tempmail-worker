@@ -1,0 +1,71 @@
+import type { D1Database } from '@cloudflare/workers-types'
+
+export interface Env {
+  DB: D1Database
+  AUTH_SECRET: string
+  MAIL_DOMAINS: string
+}
+
+// ── Emails ─────────────────────────────────────────────────
+
+export async function createEmail(db: D1Database, address: string, domain: string) {
+  await db.prepare(
+    'INSERT OR IGNORE INTO emails (address, domain) VALUES (?, ?)'
+  ).bind(address.toLowerCase(), domain).run()
+}
+
+export async function emailExists(db: D1Database, address: string): Promise<boolean> {
+  const r = await db.prepare(
+    'SELECT 1 FROM emails WHERE address = ?'
+  ).bind(address.toLowerCase()).first()
+  return !!r
+}
+
+// ── Messages ───────────────────────────────────────────────
+
+export async function insertMessage(
+  db: D1Database,
+  msg: { id: string; email: string; from: string; subject: string; body: string; html?: string }
+) {
+  await db.prepare(
+    'INSERT INTO messages (id, email_address, from_address, subject, body, html_body) VALUES (?, ?, ?, ?, ?, ?)'
+  ).bind(msg.id, msg.email.toLowerCase(), msg.from, msg.subject, msg.body, msg.html || null).run()
+}
+
+export async function getMessages(db: D1Database, address: string, limit = 50) {
+  const r = await db.prepare(
+    'SELECT id, from_address as from, subject, body, html_body as html, received_at as createdAt FROM messages WHERE email_address = ? ORDER BY received_at DESC LIMIT ?'
+  ).bind(address.toLowerCase(), limit).all()
+  return r.results
+}
+
+// ── Sessions (web dashboard) ───────────────────────────────
+
+export async function createSession(db: D1Database, id: string) {
+  await db.prepare('INSERT OR IGNORE INTO sessions (id) VALUES (?)').bind(id).run()
+}
+
+export async function linkEmailToSession(db: D1Database, sid: string, address: string) {
+  await db.prepare(
+    'INSERT OR IGNORE INTO session_emails (session_id, email_address) VALUES (?, ?)'
+  ).bind(sid, address.toLowerCase()).run()
+}
+
+export async function getSessionEmails(db: D1Database, sid: string) {
+  const r = await db.prepare(
+    `SELECT e.address, e.domain, e.created_at as createdAt,
+            (SELECT COUNT(*) FROM messages m WHERE m.email_address = e.address) as messageCount,
+            (SELECT MAX(m.received_at) FROM messages m WHERE m.email_address = e.address) as lastMessageAt
+     FROM session_emails se
+     JOIN emails e ON se.email_address = e.address
+     WHERE se.session_id = ?
+     ORDER BY se.linked_at DESC`
+  ).bind(sid).all()
+  return r.results
+}
+
+export async function unlinkEmailFromSession(db: D1Database, sid: string, address: string) {
+  await db.prepare(
+    'DELETE FROM session_emails WHERE session_id = ? AND email_address = ?'
+  ).bind(sid, address.toLowerCase()).run()
+}

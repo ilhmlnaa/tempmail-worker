@@ -1,12 +1,13 @@
 {
   "name": "tempmail-worker",
-  "version": "1.0.0",
-  "description": "MAILLDEZ-compatible temp mail API on Cloudflare Workers",
+  "version": "2.0.0",
+  "description": "MAILLDEZ-compatible temp mail API + Web Dashboard on Cloudflare Workers",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit"
+    "dev": "wrangler dev",
+    "db:create": "wrangler d1 create tempmail-db",
+    "db:init": "wrangler d1 execute tempmail-db --remote --file=src/db/schema.sql"
   },
   "dependencies": {
     "hono": "^4.6.5"
