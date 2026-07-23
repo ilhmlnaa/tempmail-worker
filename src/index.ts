@@ -41,8 +41,16 @@ app.get('/login', (c) => {
 })
 
 app.post('/auth/login', async (c) => {
-  const body = await c.req.parseBody()
-  const password = body.password as string || ''
+  const contentType = c.req.header('content-type') || ''
+  let password = ''
+
+  if (contentType.includes('application/json')) {
+    const body = await c.req.json<{ password: string }>().catch(() => ({ password: '' }))
+    password = body.password || ''
+  } else {
+    const body = await c.req.parseBody()
+    password = (body as Record<string, string>).password || ''
+  }
 
   if (!verifyPassword(c, password)) {
     return c.html(LoginPage({ error: 'Invalid password' }))
@@ -51,6 +59,11 @@ app.post('/auth/login', async (c) => {
   const sid = crypto.randomUUID()
   await createSession(c.env.DB, sid)
   setSessionCookie(c, sid)
+  
+  // If JSON (AJAX), return success; if form, redirect
+  if (contentType.includes('application/json')) {
+    return c.json({ ok: true })
+  }
   return c.redirect('/')
 })
 
