@@ -208,7 +208,7 @@ export default {
       const local = to.split('@')[0].toLowerCase()
       console.log('[email] received:', to, 'from:', message.from)
 
-      const rawText = await message.raw.text()
+      const rawText = await new Response(message.raw).text()
       const { from, subject, body } = parseEmail(rawText)
       await appendMessage(env.MAIL_LITE, local, { from, subject, body })
       console.log('[email] stored for', local)
