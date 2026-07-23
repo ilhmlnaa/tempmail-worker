@@ -2,12 +2,8 @@ name = "tempmail-worker"
 compatibility_date = "2024-10-22"
 main = "src/index.ts"
 
-# ── KV binding (auto-expire emails) ──
-[[kv_namespaces]]
-binding = "MAIL_LITE"
-id = "TBD_WILL_BE_GENERATED"
-
 # ── Email Worker (catch-all for your domain) ──
+# KV binding "MAIL_LITE" configured via Cloudflare Dashboard
 # Uncomment after enabling Email Workers in CF dashboard
 # [[email_rules]]
 # name = "catch-all"
