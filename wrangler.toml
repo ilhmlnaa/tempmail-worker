@@ -8,11 +8,8 @@ binding = "MAIL_LITE"
 id = "2ba95be2b48247e59bf172d190476f5f"
 
 # ── Email Worker (catch-all for your domain) ──
-# Uncomment after enabling Email Workers in CF dashboard
-# [[email_rules]]
-# name = "catch-all"
-# matcher = { type = "all" }
-# forward_to = "tempmail-worker"
+[email]
+action = "process"
 
 [vars]
 AUTH_SECRET = "change-me-to-random-string"
