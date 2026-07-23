@@ -34,7 +34,7 @@ export async function insertMessage(
 
 export async function getMessages(db: D1Database, address: string, limit = 50) {
   const r = await db.prepare(
-    'SELECT id, from_address as from, subject, body, html_body as html, received_at as createdAt FROM messages WHERE email_address = ? ORDER BY received_at DESC LIMIT ?'
+    'SELECT id, from_address AS "from", subject, body, html_body AS html, received_at AS createdAt FROM messages WHERE email_address = ? ORDER BY received_at DESC LIMIT ?'
   ).bind(address.toLowerCase(), limit).all()
   return r.results
 }
