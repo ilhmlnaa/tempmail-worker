@@ -38,12 +38,20 @@ api.post('/api/session', async (c) => {
 })
 
 api.post('/api/inboxes', async (c) => {
-  const body = await c.req.json<{ domain?: string }>().catch(() => ({}))
+  const body = await c.req.json<{ domain?: string; address?: string }>().catch(() => ({}))
   const domains = getDomains(c.env)
   const domain = (body.domain && domains.includes(body.domain)) ? body.domain : (domains[0] || 'example.com')
 
-  const local = randomString(12)
-  const address = `${local}@${domain}`
+  let address: string
+  if (body.address) {
+    // Custom prefix — bersihin karakter aneh
+    const clean = body.address.toLowerCase().replace(/[^a-z0-9._-]/g, '')
+    address = `${clean}@${domain}`
+    // Skip kalau kosong
+    if (!clean) address = `${randomString(12)}@${domain}`
+  } else {
+    address = `${randomString(12)}@${domain}`
+  }
 
   await createEmail(c.env.DB, address, domain)
 
