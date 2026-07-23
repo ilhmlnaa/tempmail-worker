@@ -204,17 +204,40 @@ export default {
 
   async email(message: ForwardableEmailMessage, env: Env, ctx: ExecutionContext): Promise<void> {
     try {
-      // Get raw email as text (fast, no postal-mime dependency)
-      const rawText = await message.raw.text()
+      console.log('[email] RECEIVED:', message.to, 'from:', message.from)
 
-      const { from, subject, body } = parseEmail(rawText)
+      // Quick KV test — can we write at all?
       const to = message.to
       const local = to.split('@')[0].toLowerCase()
+      console.log('[email] local part:', local)
 
-      await appendMessage(env.MAIL_LITE, local, { from, subject, body })
+      // Try simple KV write first
+      try {
+        await env.MAIL_LITE.put(`msgs:${local}`, JSON.stringify([{
+          id: generateId(),
+          from: message.from || 'unknown',
+          subject: 'raw test',
+          body: 'test body',
+          intro: 'raw test',
+          createdAt: new Date().toISOString(),
+        }]), { expirationTtl: 600 })
+        console.log('[email] KV write success for', local)
+      } catch (kvErr: any) {
+        console.error('[email] KV write failed:', kvErr?.message || kvErr)
+      }
+
+      // Now try full parse + append
+      try {
+        const rawText = await message.raw.text()
+        console.log('[email] raw text length:', rawText?.length || 0)
+        const { from, subject, body } = parseEmail(rawText)
+        await appendMessage(env.MAIL_LITE, local, { from, subject, body })
+        console.log('[email] FULL SUCCESS for', local)
+      } catch (parseErr: any) {
+        console.error('[email] parse error:', parseErr?.message || parseErr, 'stack:', parseErr?.stack)
+      }
     } catch (err: any) {
-      // Log error but don't throw — prevents bounce
-      console.error(`[email] error: ${err?.message || err}`)
+      console.error('[email] TOP error:', err?.message || err, 'stack:', err?.stack)
     }
   },
 }
