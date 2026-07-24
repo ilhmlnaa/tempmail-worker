@@ -35,10 +35,26 @@ export function DashboardPage({
     <!-- API Keys Panel -->
     ${!apiKeyFilter ? Panel({ title: 'API Keys & Permissions', icon: 'key', children: html`
       <form class="create-form" onsubmit="createApiKey(event)" style="margin-bottom:24px;">
-        <div class="input-group">
-          <span class="at"><i data-lucide="globe" class="icon-sm"></i></span>
-          <input type="text" id="apiDomains" placeholder="Domains (e.g. example.com, test.com) or * for all" />
+        <div style="margin-bottom:12px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
+            <input type="radio" name="domainScope" value="*" checked onchange="document.getElementById('specificDomains').style.display='none'" />
+            <span>All Domains (*)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
+            <input type="radio" name="domainScope" value="specific" onchange="document.getElementById('specificDomains').style.display='flex'" />
+            <span>Specific Domains</span>
+          </label>
         </div>
+        
+        <div id="specificDomains" style="display:none;flex-direction:column;gap:8px;margin-bottom:16px;padding-left:24px;border-left:2px solid var(--border)">
+          ${domains.map(d => html`
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" name="selectedDomains" value="${d}" />
+              <span>${d}</span>
+            </label>
+          `)}
+        </div>
+        
         <button type="submit" class="btn-primary" id="btnCreateKey">Generate Key</button>
       </form>
 
@@ -154,7 +170,14 @@ export function DashboardPage({
         e.preventDefault();
         const btn = document.getElementById('btnCreateKey');
         btn.disabled = true; btn.textContent = 'Generating...';
-        const domains = document.getElementById('apiDomains').value;
+        
+        let domains = '*';
+        const scope = document.querySelector('input[name="domainScope"]:checked').value;
+        if (scope === 'specific') {
+          const checked = Array.from(document.querySelectorAll('input[name="selectedDomains"]:checked')).map(cb => cb.value);
+          if (checked.length > 0) domains = checked.join(',');
+        }
+
         try {
           const r = await fetch('/dashboard/apikeys', {
             method: 'POST',
