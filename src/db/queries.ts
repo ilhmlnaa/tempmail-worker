@@ -6,6 +6,14 @@ export interface Env {
   MAIL_DOMAINS: string
 }
 
+export interface Inbox {
+  address: string
+  domain: string
+  createdAt: string
+  messageCount: number
+  lastMessageAt: string | null
+}
+
 // ── Emails ─────────────────────────────────────────────────
 
 export async function createEmail(db: D1Database, address: string, domain: string) {

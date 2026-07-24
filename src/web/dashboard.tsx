@@ -1,5 +1,6 @@
 import { html } from 'hono/html'
 import { Layout } from './layout'
+import { Panel, StatCard, IconButton } from './components'
 import type { Inbox } from '../db/queries'
 
 export function DashboardPage({ inboxes, domains, apiKeys }: { inboxes: Inbox[]; domains: string[]; apiKeys: any[] }) {
@@ -18,24 +19,13 @@ export function DashboardPage({ inboxes, domains, apiKeys }: { inboxes: Inbox[];
 
     <!-- Stats -->
     <div class="stats-grid">
-      <div class="stat-card">
-        <h3>Total Inboxes</h3>
-        <div class="val">${inboxes.length}</div>
-      </div>
-      <div class="stat-card">
-        <h3>Total Messages</h3>
-        <div class="val">${totalMsgs}</div>
-      </div>
-      <div class="stat-card">
-        <h3>Active Domains</h3>
-        <div class="val">${domains.length}</div>
-      </div>
+      ${StatCard({ label: 'Total Inboxes', value: inboxes.length })}
+      ${StatCard({ label: 'Total Messages', value: totalMsgs })}
+      ${StatCard({ label: 'Active Domains', value: domains.length })}
     </div>
 
     <!-- API Keys Panel -->
-    <div class="panel">
-      <h3><i data-lucide="key" class="icon-inline"></i> API Keys & Permissions</h3>
-      
+    ${Panel({ title: 'API Keys & Permissions', icon: 'key', children: html`
       <form class="create-form" onsubmit="createApiKey(event)" style="margin-bottom:24px;">
         <div class="input-group">
           <span class="at"><i data-lucide="globe" class="icon-sm"></i></span>
@@ -53,16 +43,15 @@ export function DashboardPage({ inboxes, domains, apiKeys }: { inboxes: Inbox[];
               <p>Domains: <span style="color:#fff">${k.permittedDomains}</span> &nbsp;&bull;&nbsp; Created: ${new Date(k.createdAt).toLocaleDateString()}</p>
             </div>
             <div class="actions">
-              <button onclick="delKey('${k.id}')" class="btn-icon danger" title="Revoke Key"><i data-lucide="trash-2"></i></button>
+              ${IconButton({ icon: 'trash-2', onclick: `delKey('${k.id}')`, title: 'Revoke Key', variant: 'danger' })}
             </div>
           </div>
         `)}
       </div>
-    </div>
+    `})}
 
     <!-- Create Inbox -->
-    <div class="panel">
-      <h3><i data-lucide="plus-circle" class="icon-inline"></i> Create Custom Inbox</h3>
+    ${Panel({ title: 'Create Custom Inbox', icon: 'plus-circle', children: html`
       <form class="create-form" onsubmit="create(event)">
         <div class="input-group">
           <input type="text" id="local" placeholder="random (optional)" />
@@ -73,11 +62,10 @@ export function DashboardPage({ inboxes, domains, apiKeys }: { inboxes: Inbox[];
         </div>
         <button type="submit" class="btn-primary" id="btnCreate">Create Inbox</button>
       </form>
-    </div>
+    `})}
 
     <!-- Inbox List -->
-    <div class="panel">
-      <h3><i data-lucide="list" class="icon-inline"></i> All Generated Inboxes</h3>
+    ${Panel({ title: 'All Generated Inboxes', icon: 'list', children: html`
       <div class="inbox-list">
         ${inboxes.length === 0 ? html`<p style="color:var(--text-dim);text-align:center;padding:20px">No inboxes yet.</p>` : ''}
         ${inboxes.map(i => html`
@@ -90,13 +78,13 @@ export function DashboardPage({ inboxes, domains, apiKeys }: { inboxes: Inbox[];
               <span class="badge">${i.messageCount || 0} msgs</span>
               <div class="actions">
                 <a href="/inbox/${encodeURIComponent(i.address)}" class="btn-icon" title="View Inbox"><i data-lucide="eye"></i></a>
-                <button onclick="del('${i.address}')" class="btn-icon danger" title="Delete"><i data-lucide="trash-2"></i></button>
+                ${IconButton({ icon: 'trash-2', onclick: `del('${i.address}')`, title: 'Delete', variant: 'danger' })}
               </div>
             </div>
           </div>
         `)}
       </div>
-    </div>
+    `})}
 
     <script>
       function showToast(msg) {

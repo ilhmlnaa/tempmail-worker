@@ -1,5 +1,6 @@
 import { html, raw } from 'hono/html'
 import { Layout } from './layout'
+import { IconButton, EmptyState } from './components'
 
 interface Message {
   id: string
@@ -23,17 +24,19 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
         <p>${messages.length} message${messages.length !== 1 ? 's' : ''}</p>
       </div>
       <div class="actions" style="gap:8px">
-        <button class="btn-icon" onclick="copyAddress()" title="Copy address"><i data-lucide="clipboard"></i></button>
-        <button class="btn-icon" onclick="refresh()" title="Refresh"><i data-lucide="refresh-cw"></i></button>
+        ${IconButton({ icon: 'clipboard', onclick: 'copyAddress()', title: 'Copy address' })}
+        ${IconButton({ icon: 'refresh-cw', onclick: 'refresh()', title: 'Refresh' })}
         <a href="/dashboard" class="btn-icon" title="Dashboard"><i data-lucide="arrow-left"></i></a>
       </div>
     </div>
 
     ${messages.length === 0 ? html`
-      <div class="panel" style="text-align:center;padding:60px 24px">
-        <i data-lucide="inbox" style="width:48px;height:48px;color:var(--text-dim);margin-bottom:16px"></i>
-        <p style="color:var(--text-dim);font-size:1rem">No messages yet.</p>
-        <p style="color:var(--text-dim);font-size:0.85rem;margin-top:4px">Send an email to <strong>${address}</strong></p>
+      <div class="panel">
+        ${EmptyState({
+          icon: 'inbox',
+          message: 'No messages yet.',
+          subMessage: `Send an email to <strong>${address}</strong>`
+        })}
       </div>
     ` : messages.map((msg, i) => html`
       <div class="panel msg-panel" id="msg-${i}">
@@ -65,7 +68,7 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
           <div class="msg-viewport">
             <div class="msg-view active" id="view-rendered-${i}">
               ${msg.html
-                ? html`<iframe srcdoc="${raw((msg.html || '').replace(/"/g,'&quot;'))}" sandbox="allow-same-origin" class="msg-iframe"></iframe>`
+                ? html`<iframe data-html="${encodeURIComponent(msg.html || '')}" sandbox="allow-same-origin" class="msg-iframe"></iframe>`
                 : html`<pre class="msg-pre">${escape(msg.body)}</pre>`
               }
             </div>
@@ -83,6 +86,10 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
     `)}
 
     <script>
+      document.querySelectorAll('iframe[data-html]').forEach(iframe => {
+        iframe.srcdoc = decodeURIComponent(iframe.dataset.html)
+      })
+
       function toggleMsg(id) {
         const detail = document.getElementById('detail-' + id)
         const badge = document.getElementById('badge-' + id)
@@ -121,17 +128,13 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
         t.textContent = msg; t.classList.add('show')
         setTimeout(() => t.classList.remove('show'), 3000)
       }
-
-      function formatDate(d) {
-        try { return new Date(d + 'Z').toLocaleString() } catch { return d }
-      }
     </script>
     `
   })
 }
 
 function escape(s: string): string {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
 }
 
 function formatDate(d: string): string {
