@@ -38,18 +38,24 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
           subMessage: `Send an email to <strong>${address}</strong>`
         })}
       </div>
-    ` : messages.map((msg, i) => html`
+    ` : messages.map((msg, i) => {
+      const senderName = msg.from.replace(/<.*>/, '').trim().replace(/"/g, '') || msg.from
+      const senderEmail = (msg.from.match(/<(.+)>/) || [,msg.from])[1]
+      const initial = senderName.charAt(0).toUpperCase()
+
+      return html`
       <div class="panel msg-panel" id="msg-${i}">
         <div class="panel-header msg-header" onclick="toggleMsg('${i}')">
+          <div class="msg-avatar">${initial}</div>
           <div class="msg-meta">
-            <div class="msg-subject">
-              <i data-lucide="${msg.subject ? 'message-square' : 'mail'}" class="icon-sm"></i>
-              ${escape(msg.subject) || '(no subject)'}
+            <div class="msg-subject">${escape(msg.subject) || '(no subject)'}</div>
+            <div class="msg-from">
+              <span class="msg-sender-name">${escape(senderName)}</span>
+              <span class="text-dim">&lt;${escape(senderEmail)}&gt;</span>
             </div>
-            <div class="msg-from"><span class="text-dim">From:</span> ${escape(msg.from)}</div>
-            <div class="text-dim" style="font-size:0.75rem">${formatDate(msg.createdAt)}</div>
           </div>
           <div class="msg-toggle">
+            <span class="text-dim" style="font-size:0.75rem;white-space:nowrap">${formatDate(msg.createdAt)}</span>
             <span class="badge" id="badge-${i}">New</span>
             <i data-lucide="chevron-down" id="chevron-${i}" class="icon-sm" style="transition:transform 0.2s"></i>
           </div>
@@ -68,8 +74,8 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
           <div class="msg-viewport">
             <div class="msg-view active" id="view-rendered-${i}">
               ${msg.html
-                ? html`<iframe data-html="${encodeURIComponent(msg.html || '')}" sandbox="allow-same-origin" class="msg-iframe"></iframe>`
-                : html`<pre class="msg-pre">${escape(msg.body)}</pre>`
+                ? html`<div class="iframe-wrapper"><iframe data-html="${encodeURIComponent(msg.html || '')}" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" class="msg-iframe" id="iframe-${i}"></iframe></div>`
+                : html`<div class="msg-plain">${escape(msg.body)}</div>`
               }
             </div>
             <div class="msg-view" id="view-raw-${i}">
@@ -83,11 +89,20 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
           </div>
         </div>
       </div>
-    `)}
+    `})}
 
     <script>
       document.querySelectorAll('iframe[data-html]').forEach(iframe => {
         iframe.srcdoc = decodeURIComponent(iframe.dataset.html)
+        iframe.onload = () => {
+          try {
+            const doc = iframe.contentDocument || iframe.contentWindow.document
+            const height = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 200)
+            iframe.style.height = Math.min(height + 40, 3000) + 'px'
+          } catch(e) {
+            iframe.style.height = '600px'
+          }
+        }
       })
 
       function toggleMsg(id) {

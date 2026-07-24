@@ -299,27 +299,42 @@ select option {
   cursor: pointer;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 16px;
+}
+.msg-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+  flex-shrink: 0;
 }
 .msg-meta { flex: 1; min-width: 0; }
 .msg-subject {
   font-weight: 600;
   font-size: 1rem;
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.msg-from { font-size: 0.85rem; margin-bottom: 4px; }
+.msg-sender-name { color: var(--text); }
+.msg-from { font-size: 0.85rem; }
 .text-dim { color: var(--text-dim); }
 .msg-toggle {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-left: 16px;
+  flex-shrink: 0;
 }
 .msg-detail {
   border-top: 1px solid var(--border);
-  padding: 24px;
+  padding: 0;
   background: #0f172a;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
@@ -327,13 +342,12 @@ select option {
 .msg-toolbar {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--border);
 }
 .toggle-group {
   display: flex;
-  background: var(--bg-panel);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -344,6 +358,8 @@ select option {
   padding: 6px 16px;
   font-size: 0.85rem;
   font-weight: 500;
+  cursor: pointer;
+  border: none;
 }
 .toggle-btn:hover { background: rgba(255,255,255,0.05); }
 .toggle-btn.active {
@@ -353,12 +369,28 @@ select option {
 .msg-viewport { position: relative; }
 .msg-view { display: none; }
 .msg-view.active { display: block; }
+.iframe-wrapper {
+  background: #fff;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  overflow: hidden;
+}
 .msg-iframe {
   width: 100%;
-  min-height: 400px;
+  min-height: 200px;
   border: none;
+  display: block;
   background: #fff;
-  border-radius: var(--radius-sm);
+}
+.msg-plain {
+  padding: 24px;
+  color: #1e293b;
+  background: #fff;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 0.925rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 .msg-pre {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -366,6 +398,8 @@ select option {
   white-space: pre-wrap;
   word-wrap: break-word;
   color: var(--text-dim);
+  padding: 24px;
+  margin: 0;
 }
 
 /* Toast */
