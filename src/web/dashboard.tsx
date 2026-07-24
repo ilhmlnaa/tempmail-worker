@@ -3,8 +3,12 @@ import { Layout } from './layout'
 import { Panel, StatCard, IconButton } from './components'
 import type { Inbox } from '../db/queries'
 
-export function DashboardPage({ inboxes, domains, apiKeys }: { inboxes: Inbox[]; domains: string[]; apiKeys: any[] }) {
-  const totalMsgs = inboxes.reduce((s, i) => s + (i.messageCount || 0), 0)
+export function DashboardPage({ 
+  inboxes, domains, apiKeys, totalInboxes, currentPage 
+}: { 
+  inboxes: Inbox[]; domains: string[]; apiKeys: any[]; totalInboxes: number; currentPage: number 
+}) {
+  const totalPages = Math.ceil(totalInboxes / 20) || 1
 
   return Layout({
     title: 'Dashboard',
@@ -19,9 +23,9 @@ export function DashboardPage({ inboxes, domains, apiKeys }: { inboxes: Inbox[];
 
     <!-- Stats -->
     <div class="stats-grid">
-      ${StatCard({ label: 'Total Inboxes', value: inboxes.length })}
-      ${StatCard({ label: 'Total Messages', value: totalMsgs })}
+      ${StatCard({ label: 'Total Inboxes', value: totalInboxes })}
       ${StatCard({ label: 'Active Domains', value: domains.length })}
+      ${StatCard({ label: 'API Keys', value: apiKeys.length })}
     </div>
 
     <!-- API Keys Panel -->
@@ -84,6 +88,23 @@ export function DashboardPage({ inboxes, domains, apiKeys }: { inboxes: Inbox[];
           </div>
         `)}
       </div>
+
+      <!-- Pagination -->
+      ${totalPages > 1 ? html`
+      <div style="display:flex; justify-content:center; align-items:center; gap:16px; margin-top:24px; padding-top:16px; border-top:1px solid var(--border)">
+        <a href="/dashboard?page=${currentPage - 1}" class="btn-primary" style="${currentPage <= 1 ? 'pointer-events:none;opacity:0.5' : ''}">
+          <i data-lucide="chevron-left" class="icon-inline"></i> Prev
+        </a>
+        
+        <span style="color:var(--text-dim); font-size:0.9rem;">
+          Page <strong>${currentPage}</strong> of ${totalPages}
+        </span>
+        
+        <a href="/dashboard?page=${currentPage + 1}" class="btn-primary" style="${currentPage >= totalPages ? 'pointer-events:none;opacity:0.5' : ''}">
+          Next <i data-lucide="chevron-right" class="icon-inline" style="margin-left:8px; margin-right:0"></i>
+        </a>
+      </div>
+      ` : ''}
     `})}
 
     <script>

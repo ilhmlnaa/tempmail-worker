@@ -72,15 +72,23 @@ export async function getSessionEmails(db: D1Database, sid: string) {
   return r.results
 }
 
-export async function getAllEmails(db: D1Database) {
+export async function getAllEmails(db: D1Database, limit: number = 20, offset: number = 0) {
+  const countResult = await db.prepare('SELECT COUNT(*) as total FROM emails').first()
+  const total = countResult ? (countResult.total as number) : 0
+
   const r = await db.prepare(
     `SELECT e.address, e.domain, e.created_at as createdAt,
             (SELECT COUNT(*) FROM messages m WHERE m.email_address = e.address) as messageCount,
             (SELECT MAX(m.received_at) FROM messages m WHERE m.email_address = e.address) as lastMessageAt
      FROM emails e
-     ORDER BY e.created_at DESC`
-  ).all()
-  return r.results
+     ORDER BY e.created_at DESC
+     LIMIT ? OFFSET ?`
+  ).bind(limit, offset).all()
+  
+  return {
+    total,
+    emails: r.results
+  }
 }
 
 export async function unlinkEmailFromSession(db: D1Database, sid: string, address: string) {

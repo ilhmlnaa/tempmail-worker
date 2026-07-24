@@ -83,20 +83,24 @@ app.get('/dashboard', async (c) => {
   if (typeof sid === 'object') return sid
 
   try {
+    const page = Math.max(1, parseInt(c.req.query('page') || '1', 10))
+    const limit = 20
+    const offset = (page - 1) * limit
+
     const { getSetting, getApiKeys } = await import('./db/queries')
     const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')
     const domains = domainsStr.split(',').map(d => d.trim()).filter(Boolean)
     
-    const inboxes = await getAllEmails(c.env.DB); 
+    const { total, emails: inboxes } = await getAllEmails(c.env.DB, limit, offset); 
     const apiKeys = await getApiKeys(c.env.DB)
 
     return c.html(DashboardPage({
       inboxes: inboxes as any[], apiKeys: apiKeys as any[],
-      domains,
+      domains, totalInboxes: total, currentPage: page,
     }))
   } catch (err: any) {
     console.error('[dash] error:', err?.message)
-    return c.html(DashboardPage({ inboxes: [], domains: [], apiKeys: [] }))
+    return c.html(DashboardPage({ inboxes: [], domains: [], apiKeys: [], totalInboxes: 0, currentPage: 1 }))
   }
 })
 
