@@ -133,3 +133,7 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
 function escape(s: string): string {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
 }
+
+function formatDate(d: string): string {
+  try { return new Date(d + 'Z').toLocaleString() } catch { return d }
+}
