@@ -23,9 +23,9 @@ export async function emailExists(db: D1Database, address: string): Promise<bool
 
 // ── Messages ───────────────────────────────────────────────
 
-export async function insertMessage(
-  db: D1Database,
-  msg: { id: string; email: string; from: string; subject: string; body: string; html?: string }
+
+export async function insertMessage(db: D1Database, 
+  msg: { id: string; email: string; from: string; subject: string; body: string; html?: string | null }
 ) {
   await db.prepare(
     'INSERT INTO messages (id, email_address, from_address, subject, body, html_body) VALUES (?, ?, ?, ?, ?, ?)'

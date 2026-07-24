@@ -7,9 +7,6 @@ binding = "DB"
 database_name = "tempmail-db"
 database_id = "a1147f43-2e28-4758-8e8e-d2a38df6e342"
 
-[email]
-action = "process"
-
 [observability]
 enabled = true
 head_sampling_rate = 1
