@@ -16,10 +16,18 @@ export interface Inbox {
 
 // ── Emails ─────────────────────────────────────────────────
 
-export async function createEmail(db: D1Database, address: string, domain: string) {
-  await db.prepare(
-    'INSERT OR IGNORE INTO emails (address, domain) VALUES (?, ?)'
-  ).bind(address.toLowerCase(), domain).run()
+export async function createEmail(db: D1Database, address: string, domain: string, apiKeyId: string | null = null) {
+  if (apiKeyId) {
+    // Karena SQLite ngga bisa INSERT OR IGNORE kalo mau UPDATE kolom tambahan saat exist, kita pakai upsert
+    await db.prepare(`
+      INSERT INTO emails (address, domain, api_key_id) VALUES (?, ?, ?)
+      ON CONFLICT(address) DO UPDATE SET api_key_id = excluded.api_key_id
+    `).bind(address.toLowerCase(), domain, apiKeyId).run()
+  } else {
+    await db.prepare(
+      'INSERT OR IGNORE INTO emails (address, domain) VALUES (?, ?)'
+    ).bind(address.toLowerCase(), domain).run()
+  }
 }
 
 export async function emailExists(db: D1Database, address: string): Promise<boolean> {
@@ -85,6 +93,26 @@ export async function getAllEmails(db: D1Database, limit: number = 20, offset: n
      LIMIT ? OFFSET ?`
   ).bind(limit, offset).all()
   
+  return {
+    total,
+    emails: r.results
+  }
+}
+
+export async function getEmailsByApiKey(db: D1Database, apiKeyId: string, limit: number = 20, offset: number = 0) {
+  const countResult = await db.prepare('SELECT COUNT(*) as total FROM emails WHERE api_key_id = ?').bind(apiKeyId).first()
+  const total = countResult ? (countResult.total as number) : 0
+
+  const r = await db.prepare(
+    `SELECT e.address, e.domain, e.created_at as createdAt,
+            (SELECT COUNT(*) FROM messages m WHERE m.email_address = e.address) as messageCount,
+            (SELECT MAX(m.received_at) FROM messages m WHERE m.email_address = e.address) as lastMessageAt
+     FROM emails e
+     WHERE e.api_key_id = ?
+     ORDER BY e.created_at DESC
+     LIMIT ? OFFSET ?`
+  ).bind(apiKeyId, limit, offset).all()
+
   return {
     total,
     emails: r.results

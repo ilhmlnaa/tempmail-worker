@@ -78,6 +78,41 @@ app.post('/auth/logout', (c) => {
 })
 
 // ── Web pages (auth required) ─────────────────────────────────
+app.get('/dashboard/apikeys/:id', async (c) => {
+  const sid = requireAuth(c)
+  if (typeof sid === 'object') return sid
+
+  try {
+    const page = Math.max(1, parseInt(c.req.query('page') || '1', 10))
+    const limit = 20
+    const offset = (page - 1) * limit
+    const apiKeyId = c.req.param('id')
+
+    const { getSetting, getApiKeys, getEmailsByApiKey } = await import('./db/queries')
+    const keys = await getApiKeys(c.env.DB)
+    const keyInfo = keys.find((k: any) => k.id === apiKeyId)
+    
+    if (!keyInfo) return c.text('API Key not found', 404)
+
+    const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')
+    const domains = domainsStr.split(',').map(d => d.trim()).filter(Boolean)
+    
+    const { total, emails: inboxes } = await getEmailsByApiKey(c.env.DB, apiKeyId, limit, offset)
+
+    return c.html(DashboardPage({
+      inboxes: inboxes as any[], 
+      apiKeys: keys as any[],
+      domains, 
+      totalInboxes: total, 
+      currentPage: page,
+      apiKeyFilter: keyInfo as any
+    }))
+  } catch (err: any) {
+    console.error('[dash apikey] error:', err?.message)
+    return c.text('Error loading data', 500)
+  }
+})
+
 app.get('/dashboard', async (c) => {
   const sid = requireAuth(c)
   if (typeof sid === 'object') return sid

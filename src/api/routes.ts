@@ -76,7 +76,7 @@ api.post('/api/inboxes', async (c) => {
     address = `${randomString(12)}@${domain}`
   }
 
-  await createEmail(c.env.DB, address, domain)
+  await createEmail(c.env.DB, address, domain, apiKeyRecord ? apiKeyRecord.id : null)
 
   if (sid) await linkEmailToSession(c.env.DB, sid, address)
   
