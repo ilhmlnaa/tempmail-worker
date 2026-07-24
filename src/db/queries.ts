@@ -80,3 +80,41 @@ export async function unlinkEmailFromSession(db: D1Database, sid: string, addres
     'DELETE FROM session_emails WHERE session_id = ? AND email_address = ?'
   ).bind(sid, address.toLowerCase()).run()
 }
+
+export interface ApiKey {
+  id: string;
+  keyValue: string;
+  permittedDomains: string;
+  createdAt: string;
+}
+
+export async function createApiKey(db: D1Database, id: string, keyValue: string, permittedDomains: string) {
+  await db.prepare('INSERT INTO api_keys (id, key_value, permitted_domains) VALUES (?, ?, ?)')
+    .bind(id, keyValue, permittedDomains)
+    .run()
+}
+
+export async function getApiKeys(db: D1Database): Promise<ApiKey[]> {
+  const { results } = await db.prepare('SELECT * FROM api_keys ORDER BY created_at DESC').all()
+  return results.map((r: any) => ({
+    id: r.id,
+    keyValue: r.key_value,
+    permittedDomains: r.permitted_domains,
+    createdAt: r.created_at
+  }))
+}
+
+export async function getApiKeyByValue(db: D1Database, key: string): Promise<ApiKey | null> {
+  const r = await db.prepare('SELECT * FROM api_keys WHERE key_value = ?').bind(key).first()
+  if (!r) return null
+  return {
+    id: r.id as string,
+    keyValue: r.key_value as string,
+    permittedDomains: r.permitted_domains as string,
+    createdAt: r.created_at as string
+  }
+}
+
+export async function deleteApiKey(db: D1Database, id: string) {
+  await db.prepare('DELETE FROM api_keys WHERE id = ?').bind(id).run()
+}

@@ -1,135 +1,176 @@
+import { html } from 'hono/html'
 import { Layout } from './layout'
+import type { Inbox } from '../db/queries'
 
-interface Inbox {
-  address: string
-  domain: string
-  createdAt: string
-  messageCount: number
-  lastMessageAt: string | null
-}
-
-export function DashboardPage({ inboxes, domains }: { inboxes: Inbox[]; domains: string[] }) {
+export function DashboardPage({ inboxes, domains, apiKeys }: { inboxes: Inbox[]; domains: string[]; apiKeys: any[] }) {
   const totalMsgs = inboxes.reduce((s, i) => s + (i.messageCount || 0), 0)
 
   return Layout({
     title: 'Dashboard',
     session: true,
-    children: `
+    children: html`
     <div class="dash-header">
       <div>
-        <h2>📬 Dashboard</h2>
-        <p style="color:var(--text2);font-size:14px;margin-top:4px">Manage your disposable inboxes</p>
-      </div>
-      <button class="btn btn-primary" onclick="openCreateModal()">+ New Inbox</button>
-    </div>
-
-    <div class="dash-stats">
-      <div class="stat-card">
-        <div class="label">Total Inboxes</div>
-        <div class="value">${inboxes.length}</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">Total Messages</div>
-        <div class="value">${totalMsgs}</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">Domains</div>
-        <div class="value" style="font-size:18px">${domains.join(', ')}</div>
+        <h2>Dashboard Overview</h2>
+        <p>Manage all disposable inboxes and API keys</p>
       </div>
     </div>
 
-    <!-- Create Modal -->
-    <div id="createModal" class="panel hidden" style="margin-bottom:24px">
-      <div class="panel-header">
-        <h3>➕ Create New Inbox</h3>
-        <button class="btn-icon" onclick="closeCreateModal()">✕</button>
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>Total Inboxes</h3>
+        <div class="val">${inboxes.length}</div>
       </div>
-      <div class="panel-body">
-        <form id="createForm" style="display:flex;gap:8px;flex-wrap:wrap">
-          <input type="text" name="local" class="auth-input" placeholder="username (empty = random)" style="flex:1;min-width:200px" />
-          <select name="domain" class="auth-input" style="width:auto">${domains.map(d => `<option value="${d}">@${d}</option>`).join('')}</select>
-          <button type="submit" class="btn btn-primary">Create</button>
-          <button type="button" class="btn btn-secondary" onclick="createRandom()">🎲 Random</button>
-        </form>
+      <div class="stat-card">
+        <h3>Total Messages</h3>
+        <div class="val">${totalMsgs}</div>
       </div>
+      <div class="stat-card">
+        <h3>Active Domains</h3>
+        <div class="val">${domains.length}</div>
+      </div>
+    </div>
+
+    <!-- API Keys Panel -->
+    <div class="panel">
+      <h3><i data-lucide="key" class="icon-inline"></i> API Keys & Permissions</h3>
+      
+      <form class="create-form" onsubmit="createApiKey(event)" style="margin-bottom:24px;">
+        <div class="input-group">
+          <span class="at"><i data-lucide="globe" class="icon-sm"></i></span>
+          <input type="text" id="apiDomains" placeholder="Domains (e.g. example.com, test.com) or * for all" />
+        </div>
+        <button type="submit" class="btn-primary" id="btnCreateKey">Generate Key</button>
+      </form>
+
+      <div class="inbox-list">
+        ${!apiKeys || apiKeys.length === 0 ? html`<p style="color:var(--text-dim);text-align:center;padding:20px">No API keys generated yet.</p>` : ''}
+        ${apiKeys && apiKeys.map(k => html`
+          <div class="inbox-item" id="keyrow-${k.id}">
+            <div class="inbox-info">
+              <h4 style="color:var(--primary)">${k.keyValue}</h4>
+              <p>Domains: <span style="color:#fff">${k.permittedDomains}</span> &nbsp;&bull;&nbsp; Created: ${new Date(k.createdAt).toLocaleDateString()}</p>
+            </div>
+            <div class="actions">
+              <button onclick="delKey('${k.id}')" class="btn-icon danger" title="Revoke Key"><i data-lucide="trash-2"></i></button>
+            </div>
+          </div>
+        `)}
+      </div>
+    </div>
+
+    <!-- Create Inbox -->
+    <div class="panel">
+      <h3><i data-lucide="plus-circle" class="icon-inline"></i> Create Custom Inbox</h3>
+      <form class="create-form" onsubmit="create(event)">
+        <div class="input-group">
+          <input type="text" id="local" placeholder="random (optional)" />
+          <span class="at">@</span>
+          <select id="domain">
+            ${domains.map(d => html`<option value="${d}">${d}</option>`)}
+          </select>
+        </div>
+        <button type="submit" class="btn-primary" id="btnCreate">Create Inbox</button>
+      </form>
     </div>
 
     <!-- Inbox List -->
     <div class="panel">
-      <div class="panel-header">
-        <h3>Your Inboxes</h3>
-        <span style="color:var(--text2);font-size:13px">${inboxes.length} inboxes</span>
-      </div>
-      <div class="panel-body" style="padding:0;overflow-x:auto">
-        ${inboxes.length === 0 ? `
-          <div class="empty-state">
-            <div class="icon">📭</div>
-            <p>No inboxes yet. Create one to get started!</p>
+      <h3><i data-lucide="list" class="icon-inline"></i> All Generated Inboxes</h3>
+      <div class="inbox-list">
+        ${inboxes.length === 0 ? html`<p style="color:var(--text-dim);text-align:center;padding:20px">No inboxes yet.</p>` : ''}
+        ${inboxes.map(i => html`
+          <div class="inbox-item" id="row-${i.address}">
+            <div class="inbox-info">
+              <h4><a href="/inbox/${encodeURIComponent(i.address)}">${i.address}</a></h4>
+              <p>Created: ${new Date(i.createdAt).toLocaleString()}</p>
+            </div>
+            <div class="inbox-meta">
+              <span class="badge">${i.messageCount || 0} msgs</span>
+              <div class="actions">
+                <a href="/inbox/${encodeURIComponent(i.address)}" class="btn-icon" title="View Inbox"><i data-lucide="eye"></i></a>
+                <button onclick="del('${i.address}')" class="btn-icon danger" title="Delete"><i data-lucide="trash-2"></i></button>
+              </div>
+            </div>
           </div>
-        ` : `
-        <table>
-          <thead><tr><th>Email Address</th><th>Domain</th><th>Messages</th><th>Last Activity</th><th></th></tr></thead>
-          <tbody>
-            ${inboxes.map(i => `
-              <tr>
-                <td style="font-weight:600;cursor:pointer" onclick="viewInbox('${i.address}')">${i.address}</td>
-                <td><span class="badge badge-gray">@${i.domain}</span></td>
-                <td><span class="badge ${i.messageCount > 0 ? 'badge-green' : 'badge-gray'}">${i.messageCount || 0}</span></td>
-                <td style="color:var(--text2);font-size:13px">${i.lastMessageAt ? new Date(i.lastMessageAt + 'Z').toLocaleString() : '-'}</td>
-                <td>
-                  <button class="btn btn-sm btn-danger" onclick="deleteInbox('${i.address}')">Delete</button>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-        `}
+        `)}
       </div>
     </div>
 
     <script>
-      function openCreateModal() { document.getElementById('createModal').classList.remove('hidden') }
-      function closeCreateModal() { document.getElementById('createModal').classList.add('hidden') }
-      
-      document.getElementById('createForm').addEventListener('submit', async (e) => {
-        e.preventDefault()
-        const local = e.target.local.value.trim()
-        const domain = e.target.domain.value
-        const res = await fetch('/dashboard/inboxes', {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ local: local || undefined, domain })
-        })
-        if(res.ok) { window.location.reload() }
-        else { toast('Failed to create inbox') }
-      })
-      
-      async function createRandom() {
-        const domain = document.querySelector('[name=domain]').value
-        const res = await fetch('/dashboard/inboxes', {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ domain })
-        })
-        if(res.ok) { window.location.reload() }
+      function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
       }
       
-      function viewInbox(addr) { window.location = '/inbox/' + encodeURIComponent(addr) }
-      
-      async function deleteInbox(addr) {
-        if(!confirm('Remove ' + addr + ' from dashboard?')) return
-        const res = await fetch('/dashboard/inboxes/' + encodeURIComponent(addr), { method:'DELETE' })
-        if(res.ok) window.location.reload()
+      async function create(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnCreate');
+        btn.disabled = true; btn.textContent = 'Creating...';
+        const local = document.getElementById('local').value;
+        const domain = document.getElementById('domain').value;
+        try {
+          const r = await fetch('/dashboard/inboxes', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ local, domain })
+          });
+          if (r.ok) location.reload();
+          else showToast('Failed to create inbox');
+        } finally {
+          btn.disabled = false; btn.textContent = 'Create Inbox';
+        }
       }
-      
-      function logout() {
-        fetch('/auth/logout', { method:'POST' }).then(() => window.location = '/login')
+
+      async function del(addr) {
+        if (!confirm('Delete inbox ' + addr + '?')) return;
+        const r = await fetch('/dashboard/inboxes/' + encodeURIComponent(addr), { method: 'DELETE' });
+        if (r.ok) {
+          const row = document.getElementById('row-' + addr);
+          if (row) row.remove();
+          showToast('Deleted ' + addr);
+        } else {
+          showToast('Failed to delete');
+        }
       }
-      
-      function toast(msg) {
-        const el = document.createElement('div'); el.className='toast'; el.textContent=msg
-        document.getElementById('toast').appendChild(el)
-        setTimeout(() => el.remove(), 3000)
+
+      async function createApiKey(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnCreateKey');
+        btn.disabled = true; btn.textContent = 'Generating...';
+        const domains = document.getElementById('apiDomains').value;
+        try {
+          const r = await fetch('/dashboard/apikeys', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ domains })
+          });
+          if (r.ok) location.reload();
+          else showToast('Failed to generate key');
+        } finally {
+          btn.disabled = false; btn.textContent = 'Generate Key';
+        }
+      }
+
+      async function delKey(id) {
+        if (!confirm('Revoke this API Key?')) return;
+        const r = await fetch('/dashboard/apikeys/' + encodeURIComponent(id), { method: 'DELETE' });
+        if (r.ok) {
+          const row = document.getElementById('keyrow-' + id);
+          if (row) row.remove();
+          showToast('Key revoked');
+        } else {
+          showToast('Failed to revoke');
+        }
+      }
+
+      async function logout() {
+        await fetch('/auth/logout', {method:'POST'});
+        location.href = '/auth/login';
       }
     </script>
-  `
+    `
   })
 }

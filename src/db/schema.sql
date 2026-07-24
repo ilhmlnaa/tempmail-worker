@@ -30,3 +30,10 @@ CREATE TABLE IF NOT EXISTS session_emails (
   FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
   FOREIGN KEY (email_address) REFERENCES emails(address) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS api_keys (
+  id TEXT PRIMARY KEY,
+  key_value TEXT NOT NULL UNIQUE,
+  permitted_domains TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

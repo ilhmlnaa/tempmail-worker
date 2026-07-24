@@ -15,7 +15,7 @@ import { cors } from 'hono/cors'
 import api from './api/routes'
 import { handleEmail } from './email/handler'
 import { requireAuth, setSessionCookie, clearSessionCookie, verifyPassword } from './api/auth'
-import { getSessionEmails, linkEmailToSession, createSession } from './db/queries'
+import { getSessionEmails, getAllEmails, linkEmailToSession, createSession } from './db/queries'
 import { LoginPage } from './web/login'
 import { DashboardPage } from './web/dashboard'
 import { InboxPage } from './web/inbox'
@@ -82,15 +82,15 @@ app.get('/', async (c) => {
 
   try {
     const domains = (c.env.MAIL_DOMAINS || '').split(',').map(d => d.trim()).filter(Boolean)
-    const inboxes = await getSessionEmails(c.env.DB, sid)
+    const inboxes = await getAllEmails(c.env.DB); const apiKeys = await getApiKeys(c.env.DB)
 
     return c.html(DashboardPage({
-      inboxes: inboxes as any[],
+      inboxes: inboxes as any[], apiKeys: apiKeys as any[],
       domains,
     }))
   } catch (err: any) {
     console.error('[dash] error:', err?.message)
-    return c.html(DashboardPage({ inboxes: [], domains: [] }))
+    return c.html(DashboardPage({ inboxes: [], domains: [], apiKeys: [] }))
   }
 })
 

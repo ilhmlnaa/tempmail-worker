@@ -2,9 +2,9 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import type { Env } from '../db/queries'
 import {
-  createEmail, emailExists, getMessages,
-  getAllEmails, linkEmailToSession,
-  unlinkEmailFromSession, createSession,
+  createEmail, getMessages, emailExists, createSession,
+  linkEmailToSession, unlinkEmailFromSession, getAllEmails,
+  getApiKeyByValue
 } from '../db/queries'
 import { requireAuth } from './auth'
 
@@ -38,9 +38,30 @@ api.post('/api/session', async (c) => {
 })
 
 api.post('/api/inboxes', async (c) => {
+  // API Key Check
+  const authHeader = c.req.header('Authorization')
+  let apiKeyRecord = null
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1]
+    apiKeyRecord = await getApiKeyByValue(c.env.DB, token)
+    if (!apiKeyRecord) {
+      return c.json({ error: 'Invalid API Key' }, 401)
+    }
+  }
+
   const body = await c.req.json<{ domain?: string; address?: string }>().catch(() => ({}))
   const domains = getDomains(c.env)
-  const domain = (body.domain && domains.includes(body.domain)) ? body.domain : (domains[0] || 'example.com')
+  let domain = (body.domain && domains.includes(body.domain)) ? body.domain : (domains[0] || 'example.com')
+  
+  // Override/Filter if API key has restricted domains (and not '*')
+  if (apiKeyRecord && apiKeyRecord.permittedDomains !== '*') {
+    const allowed = apiKeyRecord.permittedDomains.split(',').map(d => d.trim())
+    if (!allowed.includes(domain)) {
+      if (allowed.length > 0) domain = allowed[0]
+      else return c.json({ error: 'API key has no valid domain permissions' }, 403)
+    }
+  }
 
   let address: string
   if (body.address) {
@@ -138,3 +159,35 @@ api.get('/dashboard/inboxes/:addr/messages', async (c) => {
 })
 
 export default api
+
+// ════════════════════════════════════════════════════════════
+//  DASHBOARD API - API KEYS
+// ════════════════════════════════════════════════════════════
+
+import { getApiKeys, createApiKey, deleteApiKey } from '../db/queries'
+
+api.get('/dashboard/apikeys', async (c) => {
+  const sid = requireAuth(c)
+  if (typeof sid === 'object') return sid
+  const keys = await getApiKeys(c.env.DB)
+  return c.json(keys)
+})
+
+api.post('/dashboard/apikeys', async (c) => {
+  const sid = requireAuth(c)
+  if (typeof sid === 'object') return sid
+  
+  const body = await c.req.json<{ domains?: string }>().catch(() => ({}))
+  const permitted = body.domains && body.domains.trim() ? body.domains.trim() : '*'
+  const keyStr = 'tm_' + crypto.randomUUID().replace(/-/g, '')
+  
+  await createApiKey(c.env.DB, crypto.randomUUID(), keyStr, permitted)
+  return c.json({ key: keyStr, permittedDomains: permitted }, 201)
+})
+
+api.delete('/dashboard/apikeys/:id', async (c) => {
+  const sid = requireAuth(c)
+  if (typeof sid === 'object') return sid
+  await deleteApiKey(c.env.DB, c.req.param('id'))
+  return c.json({ ok: true })
+})
