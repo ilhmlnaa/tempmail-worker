@@ -78,7 +78,6 @@ api.post('/api/inboxes', async (c) => {
 
   await createEmail(c.env.DB, address, domain)
 
-  const sid = c.req.header('x-session-id')
   if (sid) await linkEmailToSession(c.env.DB, sid, address)
   
   // Link ke dashboard session juga kalau ada
