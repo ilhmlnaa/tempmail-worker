@@ -36,18 +36,18 @@ export function DashboardPage({
     <!-- API Keys Panel -->
     ${!apiKeyFilter ? Panel({ title: 'API Keys & Permissions', icon: 'key', children: html`
       <form class="create-form" onsubmit="createApiKey(event)" style="margin-bottom:24px;">
-        <div style="margin-bottom:12px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
-            <input type="radio" name="domainScope" value="*" checked onchange="document.getElementById('specificDomains').style.display='none'" />
-            <span>All Domains (*)</span>
+        <div style="margin-bottom:20px; display:flex; flex-direction:column; gap:12px;">
+          <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:12px 16px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid var(--border)">
+            <input type="radio" name="domainScope" value="*" checked onchange="document.getElementById('specificDomains').style.display='none'" style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer;" />
+            <span style="font-weight:500;font-size:0.95rem">All Domains (*)</span>
           </label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
-            <input type="radio" name="domainScope" value="specific" onchange="document.getElementById('specificDomains').style.display='flex'" />
-            <span>Specific Domains</span>
+          <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:12px 16px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid var(--border)">
+            <input type="radio" name="domainScope" value="specific" onchange="document.getElementById('specificDomains').style.display='flex'" style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer;" />
+            <span style="font-weight:500;font-size:0.95rem">Specific Domains</span>
           </label>
         </div>
         
-        <div id="specificDomains" style="display:none;flex-direction:column;gap:8px;margin-bottom:16px;padding-left:24px;border-left:2px solid var(--border)">
+        <div id="specificDomains" style="display:none;flex-direction:column;gap:12px;margin-bottom:20px;padding-left:24px;border-left:2px solid var(--border)">
           ${domains.map(d => html`
             <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid var(--border)">
               <input type="checkbox" name="selectedDomains" value="${d}" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" />
