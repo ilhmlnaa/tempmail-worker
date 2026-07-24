@@ -65,7 +65,7 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
           <div class="msg-viewport">
             <div class="msg-view active" id="view-rendered-${i}">
               ${msg.html
-                ? html`<iframe srcdoc="${raw(msg.html.replace(/"/g,'&quot;'))}" sandbox="allow-same-origin" class="msg-iframe"></iframe>`
+                ? html`<iframe srcdoc="${raw((msg.html || '').replace(/"/g,'&quot;'))}" sandbox="allow-same-origin" class="msg-iframe"></iframe>`
                 : html`<pre class="msg-pre">${escape(msg.body)}</pre>`
               }
             </div>
