@@ -4,9 +4,9 @@ import { Panel, StatCard, IconButton } from './components'
 import type { Inbox } from '../db/queries'
 
 export function DashboardPage({ 
-  inboxes, domains, apiKeys, totalInboxes, currentPage, apiKeyFilter
+  inboxes, domains, apiKeys, totalInboxes, totalMessages, currentPage, apiKeyFilter
 }: { 
-  inboxes: Inbox[]; domains: string[]; apiKeys: any[]; totalInboxes: number; currentPage: number; apiKeyFilter?: any
+  inboxes: Inbox[]; domains: string[]; apiKeys: any[]; totalInboxes: number; totalMessages: number; currentPage: number; apiKeyFilter?: any
 }) {
   const totalPages = Math.ceil(totalInboxes / 20) || 1
   const baseUrl = apiKeyFilter ? `/dashboard/apikeys/${apiKeyFilter.id}` : '/dashboard'
@@ -28,6 +28,7 @@ export function DashboardPage({
     <!-- Stats -->
     <div class="stats-grid">
       ${StatCard({ label: 'Total Inboxes', value: totalInboxes })}
+      ${StatCard({ label: 'Total Messages', value: totalMessages })}
       ${StatCard({ label: 'Active Domains', value: domains.length })}
       ${StatCard({ label: 'API Keys', value: apiKeys.length })}
     </div>
@@ -48,9 +49,9 @@ export function DashboardPage({
         
         <div id="specificDomains" style="display:none;flex-direction:column;gap:8px;margin-bottom:16px;padding-left:24px;border-left:2px solid var(--border)">
           ${domains.map(d => html`
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-              <input type="checkbox" name="selectedDomains" value="${d}" />
-              <span>${d}</span>
+            <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid var(--border)">
+              <input type="checkbox" name="selectedDomains" value="${d}" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" />
+              <span style="font-family:monospace;font-size:0.95rem;color:var(--text)">${d}</span>
             </label>
           `)}
         </div>

@@ -84,6 +84,9 @@ export async function getAllEmails(db: D1Database, limit: number = 20, offset: n
   const countResult = await db.prepare('SELECT COUNT(*) as total FROM emails').first()
   const total = countResult ? (countResult.total as number) : 0
 
+  const msgsResult = await db.prepare('SELECT COUNT(*) as totalMsgs FROM messages').first()
+  const totalMessages = msgsResult ? (msgsResult.totalMsgs as number) : 0
+
   const r = await db.prepare(
     `SELECT e.address, e.domain, e.created_at as createdAt,
             (SELECT COUNT(*) FROM messages m WHERE m.email_address = e.address) as messageCount,
@@ -95,6 +98,7 @@ export async function getAllEmails(db: D1Database, limit: number = 20, offset: n
   
   return {
     total,
+    totalMessages,
     emails: r.results
   }
 }
@@ -102,6 +106,9 @@ export async function getAllEmails(db: D1Database, limit: number = 20, offset: n
 export async function getEmailsByApiKey(db: D1Database, apiKeyId: string, limit: number = 20, offset: number = 0) {
   const countResult = await db.prepare('SELECT COUNT(*) as total FROM emails WHERE api_key_id = ?').bind(apiKeyId).first()
   const total = countResult ? (countResult.total as number) : 0
+
+  const msgsResult = await db.prepare('SELECT COUNT(m.id) as totalMsgs FROM messages m JOIN emails e ON m.email_address = e.address WHERE e.api_key_id = ?').bind(apiKeyId).first()
+  const totalMessages = msgsResult ? (msgsResult.totalMsgs as number) : 0
 
   const r = await db.prepare(
     `SELECT e.address, e.domain, e.created_at as createdAt,
@@ -115,6 +122,7 @@ export async function getEmailsByApiKey(db: D1Database, apiKeyId: string, limit:
 
   return {
     total,
+    totalMessages,
     emails: r.results
   }
 }
