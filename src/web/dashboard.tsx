@@ -36,22 +36,22 @@ export function DashboardPage({
     <!-- API Keys Panel -->
     ${!apiKeyFilter ? Panel({ title: 'API Keys & Permissions', icon: 'key', children: html`
       <form class="create-form" onsubmit="createApiKey(event)" style="margin-bottom:24px;">
-        <div style="margin-bottom:20px; display:flex; flex-direction:column; gap:12px;">
-          <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:12px 16px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid var(--border)">
-            <input type="radio" name="domainScope" value="*" checked onchange="document.getElementById('specificDomains').style.display='none'" style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer;" />
-            <span style="font-weight:500;font-size:0.95rem">All Domains (*)</span>
+        <div style="margin-bottom:16px; display:flex; gap:16px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 16px;background:rgba(255,255,255,0.02);border-radius:6px;border:1px solid var(--border);flex:1;justify-content:center">
+            <input type="radio" name="domainScope" value="*" checked onchange="document.getElementById('specificDomains').style.display='none'" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" />
+            <span style="font-weight:500;font-size:0.9rem">All Domains (*)</span>
           </label>
-          <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:12px 16px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid var(--border)">
-            <input type="radio" name="domainScope" value="specific" onchange="document.getElementById('specificDomains').style.display='flex'" style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer;" />
-            <span style="font-weight:500;font-size:0.95rem">Specific Domains</span>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 16px;background:rgba(255,255,255,0.02);border-radius:6px;border:1px solid var(--border);flex:1;justify-content:center">
+            <input type="radio" name="domainScope" value="specific" onchange="document.getElementById('specificDomains').style.display='grid'" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" />
+            <span style="font-weight:500;font-size:0.9rem">Specific Domains</span>
           </label>
         </div>
         
-        <div id="specificDomains" style="display:none;flex-direction:column;gap:12px;margin-bottom:20px;padding-left:24px;border-left:2px solid var(--border)">
+        <div id="specificDomains" style="display:none;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:12px;margin-bottom:20px;padding:16px;background:rgba(0,0,0,0.2);border-radius:8px;border:1px solid var(--border)">
           ${domains.map(d => html`
-            <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 0;">
               <input type="checkbox" name="selectedDomains" value="${d}" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" />
-              <span style="font-family:monospace;font-size:0.95rem;color:var(--text)">${d}</span>
+              <span style="font-family:monospace;font-size:0.9rem;color:var(--text)">${d}</span>
             </label>
           `)}
         </div>
