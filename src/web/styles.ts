@@ -309,10 +309,10 @@ input:focus, select:focus { border-color: var(--primary); }
   justify-content: center;
   background: radial-gradient(circle at top, var(--bg-panel) 0%, var(--bg) 100%);
 }
-`
 
 /* Lucide Icon Tweaks */
 .icon-md { width: 24px; height: 24px; vertical-align: middle; margin-right: 8px; }
 .icon-sm { width: 18px; height: 18px; vertical-align: middle; }
 .icon-inline { width: 20px; height: 20px; vertical-align: text-bottom; margin-right: 8px; color: var(--primary); }
 svg.lucide { stroke-width: 2; }
+`
