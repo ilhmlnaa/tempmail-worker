@@ -168,7 +168,7 @@ export function DashboardPage({ inboxes, domains, apiKeys }: { inboxes: Inbox[];
 
       async function logout() {
         await fetch('/auth/logout', {method:'POST'});
-        location.href = '/auth/login';
+        location.href = '/login';
       }
     </script>
     `

@@ -310,6 +310,47 @@ input:focus, select:focus { border-color: var(--primary); }
   background: radial-gradient(circle at top, var(--bg-panel) 0%, var(--bg) 100%);
 }
 
+.auth-card {
+  background: var(--bg-panel);
+  padding: 40px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+.auth-card h1 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.auth-card p {
+  color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.auth-input {
+  width: 100%;
+  margin-bottom: 16px;
+}
+.auth-btn {
+  width: 100%;
+  background: var(--gradient);
+  color: #fff;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  font-weight: bold;
+  transition: opacity 0.2s;
+}
+.auth-btn:hover { opacity: 0.9; }
+.auth-error {
+  color: var(--danger);
+  margin-top: 16px;
+  font-size: 0.9rem;
+}
+
 /* Lucide Icon Tweaks */
 .icon-md { width: 24px; height: 24px; vertical-align: middle; margin-right: 8px; }
 .icon-sm { width: 18px; height: 18px; vertical-align: middle; }
