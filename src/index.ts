@@ -18,6 +18,7 @@ import { requireAuth, setSessionCookie, clearSessionCookie, verifyPassword } fro
 import { getSessionEmails, getAllEmails, linkEmailToSession, createSession } from './db/queries'
 import { LoginPage } from './web/login'
 import { DashboardPage } from './web/dashboard'
+import { SettingsPage } from './web/settings'
 import { InboxPage } from './web/inbox'
 import { css } from './web/styles'
 import type { Env } from './db/queries'
@@ -52,7 +53,8 @@ app.post('/auth/login', async (c) => {
     password = (body as Record<string, string>).password || ''
   }
 
-  if (!verifyPassword(c, password)) {
+  const isValid = await verifyPassword(c, password)
+  if (!isValid) {
     if (contentType.includes('application/json')) {
       return c.json({ error: 'Invalid password' }, 401)
     }
@@ -76,13 +78,17 @@ app.post('/auth/logout', (c) => {
 })
 
 // ── Web pages (auth required) ─────────────────────────────────
-app.get('/', async (c) => {
+app.get('/dashboard', async (c) => {
   const sid = requireAuth(c)
   if (typeof sid === 'object') return sid
 
   try {
-    const domains = (c.env.MAIL_DOMAINS || '').split(',').map(d => d.trim()).filter(Boolean)
-    const inboxes = await getAllEmails(c.env.DB); const apiKeys = await getApiKeys(c.env.DB)
+    const { getSetting, getApiKeys } = await import('./db/queries')
+    const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')
+    const domains = domainsStr.split(',').map(d => d.trim()).filter(Boolean)
+    
+    const inboxes = await getAllEmails(c.env.DB); 
+    const apiKeys = await getApiKeys(c.env.DB)
 
     return c.html(DashboardPage({
       inboxes: inboxes as any[], apiKeys: apiKeys as any[],
@@ -92,6 +98,18 @@ app.get('/', async (c) => {
     console.error('[dash] error:', err?.message)
     return c.html(DashboardPage({ inboxes: [], domains: [], apiKeys: [] }))
   }
+})
+
+app.get('/', (c) => c.redirect('/dashboard'))
+
+app.get('/settings', async (c) => {
+  const sid = requireAuth(c)
+  if (typeof sid === 'object') return sid
+  
+  const { getSetting } = await import('./db/queries')
+  const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')
+  
+  return c.html(SettingsPage({ domains: domainsStr, hasAuthSecret: true }))
 })
 
 app.get('/inbox/:addr', async (c) => {

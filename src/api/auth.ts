@@ -1,5 +1,6 @@
 import type { Context } from 'hono'
 import type { Env } from '../db/queries'
+import { getSetting } from '../db/queries'
 
 const SESSION_COOKIE = 'tm_sid'
 
@@ -22,8 +23,9 @@ export function clearSessionCookie(c: Context<{ Bindings: Env }>) {
   c.header('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`)
 }
 
-export function verifyPassword(c: Context<{ Bindings: Env }>, password: string): boolean {
-  return password === c.env.AUTH_SECRET
+export async function verifyPassword(c: Context<{ Bindings: Env }>, password: string): Promise<boolean> {
+  const expected = await getSetting(c.env.DB, 'auth_password', c.env.AUTH_SECRET || '')
+  return password === expected
 }
 
 function getCookie(c: Context, name: string): string | null {

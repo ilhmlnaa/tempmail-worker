@@ -8,7 +8,6 @@ export function Layout({ title, children, session }: { title: string; children: 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${title} — TempMail</title>
   <link rel="stylesheet" href="/styles.css" />
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
@@ -19,8 +18,11 @@ export function Layout({ title, children, session }: { title: string; children: 
         <i data-lucide="zap" class="icon-md"></i> TempMail
       </div>
       <nav class="sidebar-nav">
-        <a href="/" class="active">
-          <i data-lucide="layout-dashboard"></i> Dashboard
+        <a href="/dashboard" id="nav-dashboard">
+          <i data-lucide="layout-dashboard"></i> Overview
+        </a>
+        <a href="/settings" id="nav-settings">
+          <i data-lucide="settings"></i> Settings
         </a>
       </nav>
       <div class="sidebar-footer">
@@ -37,6 +39,15 @@ export function Layout({ title, children, session }: { title: string; children: 
   <div id="toast"></div>
   <script>
     lucide.createIcons();
+    // Auto-active nav link based on current path
+    const path = window.location.pathname;
+    if(path.startsWith('/dashboard') || path === '/') {
+      const el = document.getElementById('nav-dashboard');
+      if (el) el.classList.add('active');
+    } else if(path.startsWith('/settings')) {
+      const el = document.getElementById('nav-settings');
+      if (el) el.classList.add('active');
+    }
   </script>
 </body>
 </html>`

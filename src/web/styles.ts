@@ -41,6 +41,11 @@ input, select {
 }
 input:focus, select:focus { border-color: var(--primary); }
 
+select option {
+  background: var(--bg-panel);
+  color: var(--text);
+}
+
 /* Layout */
 .app-layout {
   display: flex;

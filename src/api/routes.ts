@@ -51,7 +51,7 @@ api.post('/api/inboxes', async (c) => {
   }
 
   const body = await c.req.json<{ domain?: string; address?: string }>().catch(() => ({}))
-  const domains = getDomains(c.env)
+  const domains = (await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')).split(',').map(d => d.trim())
   let domain = (body.domain && domains.includes(body.domain)) ? body.domain : (domains[0] || 'example.com')
   
   // Override/Filter if API key has restricted domains (and not '*')
@@ -88,7 +88,7 @@ api.post('/api/inboxes', async (c) => {
 
 api.get('/api/inboxes/:addr/messages', async (c) => {
   const addr = decodeURIComponent(c.req.param('addr'))
-  const email = addr.includes('@') ? addr : `${addr}@${getDomains(c.env)[0]}`
+  const email = addr.includes('@') ? addr : `${addr}@${(await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')).split(',')[0].trim()}`
   const msgs = await getMessages(c.env.DB, email)
   return c.json(msgs)
 })
@@ -118,7 +118,7 @@ api.post('/dashboard/inboxes', async (c) => {
   if (typeof sid === 'object') return sid
 
   const body = await c.req.json<{ local?: string; domain?: string }>().catch(() => ({}))
-  const domains = getDomains(c.env)
+  const domains = (await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')).split(',').map(d => d.trim())
   const domain = (body.domain && domains.includes(body.domain)) ? body.domain : (domains[0] || 'example.com')
 
   let address: string
@@ -189,5 +189,23 @@ api.delete('/dashboard/apikeys/:id', async (c) => {
   const sid = requireAuth(c)
   if (typeof sid === 'object') return sid
   await deleteApiKey(c.env.DB, c.req.param('id'))
+  return c.json({ ok: true })
+})
+import { getSetting, updateSetting } from '../db/queries'
+
+// ── Settings API ─────────────────────────────────────────────
+api.post('/dashboard/settings', async (c) => {
+  const sid = requireAuth(c)
+  if (typeof sid === 'object') return sid
+  
+  const body = await c.req.json<{ mail_domains?: string, auth_password?: string }>().catch(() => ({}))
+  
+  if (body.mail_domains !== undefined) {
+    await updateSetting(c.env.DB, 'mail_domains', body.mail_domains)
+  }
+  if (body.auth_password !== undefined && body.auth_password.trim() !== '') {
+    await updateSetting(c.env.DB, 'auth_password', body.auth_password)
+  }
+  
   return c.json({ ok: true })
 })

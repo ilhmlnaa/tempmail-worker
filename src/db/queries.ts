@@ -118,3 +118,15 @@ export async function getApiKeyByValue(db: D1Database, key: string): Promise<Api
 export async function deleteApiKey(db: D1Database, id: string) {
   await db.prepare('DELETE FROM api_keys WHERE id = ?').bind(id).run()
 }
+
+// ── Settings ────────────────────────────────────────────────
+export async function getSetting(db: D1Database, key: string, fallback: string): Promise<string> {
+  const r = await db.prepare('SELECT value FROM settings WHERE key = ?').bind(key).first()
+  if (r) return r.value as string
+  return fallback
+}
+
+export async function updateSetting(db: D1Database, key: string, value: string) {
+  await db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?')
+    .bind(key, value, value).run()
+}

@@ -37,3 +37,8 @@ CREATE TABLE IF NOT EXISTS api_keys (
   permitted_domains TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
