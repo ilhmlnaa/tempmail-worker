@@ -38,16 +38,18 @@ api.post('/api/session', async (c) => {
 })
 
 api.post('/api/inboxes', async (c) => {
-  // API Key Check
+  // Check Session (Dashboard Admin) or API Key
+  const sid = c.req.header('x-session-id')
   const authHeader = c.req.header('Authorization')
   let apiKeyRecord = null
-  
+
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1]
     apiKeyRecord = await getApiKeyByValue(c.env.DB, token)
-    if (!apiKeyRecord) {
-      return c.json({ error: 'Invalid API Key' }, 401)
-    }
+    if (!apiKeyRecord) return c.json({ error: 'Invalid API Key' }, 401)
+  } else if (!sid) {
+    // Wajib ada API Key atau x-session-id
+    return c.json({ error: 'API Key required' }, 401)
   }
 
   const body = await c.req.json<{ domain?: string; address?: string }>().catch(() => ({}))
