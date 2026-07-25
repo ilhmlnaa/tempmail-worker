@@ -177,6 +177,7 @@ export function DocsPage({ session = false }: { session?: boolean }) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Developer REST API Docs — VoidMail</title>
+  <link rel="icon" type="image/png" href="/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -187,7 +188,7 @@ export function DocsPage({ session = false }: { session?: boolean }) {
   <header class="landing-header">
     <div class="landing-container nav-container">
       <div class="landing-logo">
-        <i data-lucide="shield-zap" class="icon-md" style="color:var(--primary)"></i> 
+        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" /> 
         <span>Void<span style="color:var(--primary)">Mail</span></span>
       </div>
       <nav class="landing-nav">
@@ -196,8 +197,30 @@ export function DocsPage({ session = false }: { session?: boolean }) {
         <a href="/#features">Features</a>
         <a href="/docs" class="active">Developer API</a>
       </nav>
+      <button class="landing-mobile-menu-btn" onclick="toggleLandingDrawer(true)" aria-label="Open Menu">
+        <i data-lucide="menu"></i>
+      </button>
     </div>
   </header>
+
+  <div class="landing-drawer-backdrop" onclick="toggleLandingDrawer(false)"></div>
+  <aside class="landing-drawer" id="landingDrawer">
+    <div class="landing-drawer-header">
+      <div class="landing-logo">
+        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" /> 
+        <span>Void<span style="color:var(--primary)">Mail</span></span>
+      </div>
+      <button class="mobile-close-btn" onclick="toggleLandingDrawer(false)" aria-label="Close Menu">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <nav class="landing-drawer-nav">
+      <a href="/#generator" onclick="toggleLandingDrawer(false)"><i data-lucide="mail"></i> Instant Mail</a>
+      <a href="/#domains" onclick="toggleLandingDrawer(false)"><i data-lucide="globe"></i> Domains</a>
+      <a href="/#features" onclick="toggleLandingDrawer(false)"><i data-lucide="zap"></i> Features</a>
+      <a href="/docs" onclick="toggleLandingDrawer(false)" class="active"><i data-lucide="book-open"></i> Developer API</a>
+    </nav>
+  </aside>
 
   <div class="landing-container" style="padding: 32px 20px 60px">
     <div class="dash-header" style="margin-bottom:16px;flex-wrap:wrap;gap:16px">
@@ -221,7 +244,7 @@ export function DocsPage({ session = false }: { session?: boolean }) {
   <footer class="landing-footer">
     <div class="landing-container footer-content">
       <div style="display:flex;align-items:center;gap:10px">
-        <i data-lucide="shield-zap" style="color:var(--primary)"></i>
+        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img-sm" />
         <span style="font-weight:700;font-size:1.1rem">VoidMail</span>
       </div>
       <p style="color:var(--text-dim);font-size:0.85rem">
@@ -237,6 +260,26 @@ export function DocsPage({ session = false }: { session?: boolean }) {
 
   <script>
     lucide.createIcons();
+    function toggleLandingDrawer(show) {
+      const drawer = document.getElementById('landingDrawer');
+      const backdrop = document.querySelector('.landing-drawer-backdrop');
+      if (!drawer) return;
+      if (typeof show === 'boolean') {
+        if (show) {
+          drawer.classList.add('open');
+          if (backdrop) backdrop.classList.add('show');
+          document.body.style.overflow = 'hidden';
+        } else {
+          drawer.classList.remove('open');
+          if (backdrop) backdrop.classList.remove('show');
+          document.body.style.overflow = '';
+        }
+      } else {
+        const isOpen = drawer.classList.toggle('open');
+        if (backdrop) backdrop.classList.toggle('show', isOpen);
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+      }
+    }
   </script>
 </body>
 </html>`
