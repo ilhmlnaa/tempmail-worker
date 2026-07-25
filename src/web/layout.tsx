@@ -67,6 +67,12 @@ export function Layout({ title, children, session }: { title: string; children: 
       m.showModal();
       lucide.createIcons();
     }
+    async function logout() {
+      confirmAction('Logout', 'Are you sure you want to log out of your session?', 'Logout', async function() {
+        await fetch('/auth/logout', {method:'POST'});
+        location.href = '/login';
+      });
+    }
     const path = window.location.pathname;
     if(path.startsWith('/dashboard') || path === '/') {
       const el = document.getElementById('nav-dashboard');

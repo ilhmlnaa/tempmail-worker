@@ -120,26 +120,28 @@ export function SettingsPage({ domains, hasAuthSecret }: { domains: string; hasA
       }
 
       async function removeDomain(d) {
-        const oldDomains = [...activeDomains];
-        activeDomains = activeDomains.filter(item => item !== d);
-        renderDomainTags();
-
-        try {
-          const r = await fetch('/dashboard/settings', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ mail_domains: activeDomains.join(',') })
-          });
-          if (r.ok) {
-            showToast('Domain removed & saved');
-          } else {
-            throw new Error('Failed');
-          }
-        } catch(e) {
-          activeDomains = oldDomains;
+        confirmAction('Remove Domain', 'Are you sure you want to remove ' + d + '? Inboxes using this domain may be affected.', 'Remove', async function() {
+          const oldDomains = [...activeDomains];
+          activeDomains = activeDomains.filter(item => item !== d);
           renderDomainTags();
-          showToast('Failed to remove domain on server');
-        }
+
+          try {
+            const r = await fetch('/dashboard/settings', {
+              method: 'POST',
+              headers: {'Content-Type':'application/json'},
+              body: JSON.stringify({ mail_domains: activeDomains.join(',') })
+            });
+            if (r.ok) {
+              showToast('Domain removed & saved');
+            } else {
+              throw new Error('Failed');
+            }
+          } catch(e) {
+            activeDomains = oldDomains;
+            renderDomainTags();
+            showToast('Failed to remove domain on server');
+          }
+        });
       }
 
       async function updateSettings(e) {
