@@ -117,7 +117,7 @@ export function SettingsPage({
           ${initialDomains.map(d => html`
             <div class="domain-tag-item" data-domain="${d}">
               <span>${d}</span>
-              <button type="button" onclick="event.preventDefault();event.stopPropagation();removeDomain('${d}')" title="Remove domain">&times;</button>
+              <button type="button" class="domain-remove-btn" title="Remove domain" aria-label="Remove ${d}">&times;</button>
             </div>
           `)}
         </div>
@@ -240,31 +240,85 @@ export function SettingsPage({
       function renderDomainTags() {
         const container = document.getElementById('domainTagsList');
         if (container) {
+          container.replaceChildren();
+
           if (activeDomains.length === 0) {
-            container.innerHTML = '<p style="color:var(--text-dim);font-size:0.85rem">No domains added yet. Add a domain below.</p>';
+            const emptyState = document.createElement('p');
+            emptyState.style.cssText = 'color:var(--text-dim);font-size:0.85rem';
+            emptyState.textContent = 'No domains added yet. Add a domain below.';
+            container.appendChild(emptyState);
           } else {
-            container.innerHTML = activeDomains.map(d => 
-              '<div class="domain-tag-item" data-domain="' + d + '">' +
-                '<span>' + d + '</span>' +
-                '<button type="button" onclick="event.preventDefault();event.stopPropagation();removeDomain(\'' + d + '\')" title="Remove domain">&times;</button>' +
-              '</div>'
-            ).join('');
+            activeDomains.forEach(domain => {
+              const item = document.createElement('div');
+              item.className = 'domain-tag-item';
+              item.dataset.domain = domain;
+
+              const label = document.createElement('span');
+              label.textContent = domain;
+
+              const removeButton = document.createElement('button');
+              removeButton.type = 'button';
+              removeButton.className = 'domain-remove-btn';
+              removeButton.title = 'Remove domain';
+              removeButton.setAttribute('aria-label', 'Remove ' + domain);
+              removeButton.textContent = '×';
+
+              item.append(label, removeButton);
+              container.appendChild(item);
+            });
           }
         }
 
         const grid = document.getElementById('publicDomainGrid');
         if (grid) {
-          grid.innerHTML = activeDomains.map(d => {
-            return '<label class="domain-tag public-domain-tag-item selected" data-domain-name="' + d + '">' +
-              '<input type="checkbox" name="publicSelectedDomains" value="' + d + '" checked onchange="onPublicTagChange(this)" style="display:none" />' +
-              '<i data-lucide="check" class="icon-sm tag-check"></i>' +
-              '<span>@' + d + '</span>' +
-            '</label>';
-          }).join('');
+          const selectedDomains = new Set(
+            Array.from(grid.querySelectorAll('input[name="publicSelectedDomains"]:checked')).map(input => input.value)
+          );
+          const renderedDomains = new Set(
+            Array.from(grid.querySelectorAll('[data-domain-name]')).map(item => item.getAttribute('data-domain-name'))
+          );
+          const isAllScope = document.getElementById('pub-scope-all').classList.contains('active');
+
+          grid.replaceChildren();
+          activeDomains.forEach(domain => {
+            const isChecked = isAllScope || selectedDomains.has(domain) || !renderedDomains.has(domain);
+            const tag = document.createElement('label');
+            tag.className = 'domain-tag public-domain-tag-item' + (isChecked ? ' selected' : '');
+            tag.dataset.domainName = domain;
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = 'publicSelectedDomains';
+            checkbox.value = domain;
+            checkbox.checked = isChecked;
+            checkbox.style.display = 'none';
+            checkbox.addEventListener('change', function() { onPublicTagChange(this); });
+
+            const check = document.createElement('i');
+            check.setAttribute('data-lucide', 'check');
+            check.className = 'icon-sm tag-check';
+            if (!isChecked) check.style.display = 'none';
+
+            const label = document.createElement('span');
+            label.textContent = '@' + domain;
+
+            tag.append(checkbox, check, label);
+            grid.appendChild(tag);
+          });
           if (window.lucide) lucide.createIcons();
         }
         updatePublicCountBadge();
       }
+
+      document.getElementById('domainTagsList').addEventListener('click', function(event) {
+        const removeButton = event.target.closest('.domain-remove-btn');
+        if (!removeButton || !this.contains(removeButton)) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        const domain = removeButton.closest('[data-domain]').getAttribute('data-domain');
+        if (domain) removeDomain(domain);
+      });
 
       async function addDomain() {
         const input = document.getElementById('newDomainInput');
