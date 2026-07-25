@@ -331,7 +331,7 @@ export function SettingsPage({
         btn.disabled = true;
 
         try {
-          await fetch('/api/settings', {
+          const res = await fetch('/api/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -340,7 +340,11 @@ export function SettingsPage({
               public_allowed_domains: allowedStr
             })
           });
-          showToast('Public settings updated successfully!');
+          if (res.ok) {
+            showToast('Public settings updated successfully!');
+          } else {
+            showToast('Failed to update public settings');
+          }
         } catch (err) {
           showToast('Failed to update public settings');
         } finally {
@@ -367,15 +371,19 @@ export function SettingsPage({
 
         try {
           if (p1) {
-            await fetch('/api/settings', {
+            const res = await fetch('/api/settings', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ auth_password: p1 })
             });
+            if (res.ok) {
+              showToast('Settings saved successfully');
+              document.getElementById('cfg_password').value = '';
+              document.getElementById('cfg_repeat_password').value = '';
+            } else {
+              showToast('Failed to save settings');
+            }
           }
-          showToast('Settings saved successfully');
-          document.getElementById('cfg_password').value = '';
-          document.getElementById('cfg_repeat_password').value = '';
         } catch (err) {
           showToast('Failed to save settings');
         } finally {

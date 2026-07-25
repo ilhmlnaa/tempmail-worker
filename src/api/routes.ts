@@ -243,21 +243,33 @@ api.delete('/dashboard/apikeys/:id', async (c) => {
   return c.json({ ok: true })
 })
 
-api.post('/dashboard/settings', async (c) => {
+const saveSettingsHandler = async (c: any) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
   
-  const body = (await c.req.json().catch(() => ({}))) as { mail_domains?: string; auth_password?: string }
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, any>
   
   if (body.mail_domains !== undefined) {
-    await updateSetting(c.env.DB, 'mail_domains', body.mail_domains)
+    await updateSetting(c.env.DB, 'mail_domains', String(body.mail_domains))
   }
-  if (body.auth_password !== undefined && body.auth_password.trim() !== '') {
-    await updateSetting(c.env.DB, 'auth_password', body.auth_password)
+  if (body.auth_password !== undefined && String(body.auth_password).trim() !== '') {
+    await updateSetting(c.env.DB, 'auth_password', String(body.auth_password))
+  }
+  if (body.public_tempmail_enabled !== undefined) {
+    await updateSetting(c.env.DB, 'public_tempmail_enabled', String(body.public_tempmail_enabled))
+  }
+  if (body.public_max_inboxes_per_session !== undefined) {
+    await updateSetting(c.env.DB, 'public_max_inboxes_per_session', String(body.public_max_inboxes_per_session))
+  }
+  if (body.public_allowed_domains !== undefined) {
+    await updateSetting(c.env.DB, 'public_allowed_domains', String(body.public_allowed_domains))
   }
   
   return c.json({ ok: true })
-})
+}
+
+api.post('/api/settings', saveSettingsHandler)
+api.post('/dashboard/settings', saveSettingsHandler)
 
 export default api
 
