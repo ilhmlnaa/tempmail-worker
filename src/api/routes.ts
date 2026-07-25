@@ -52,11 +52,10 @@ api.post('/api/inboxes', async (c) => {
     return c.json({ error: 'API Key required' }, 401)
   }
 
-  const body = await c.req.json<{ domain?: string; address?: string }>().catch(() => ({}))
+  const body = (await c.req.json().catch(() => ({}))) as { domain?: string; address?: string }
   const domains = (await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')).split(',').map(d => d.trim())
   let domain = (body.domain && domains.includes(body.domain)) ? body.domain : (domains[0] || 'example.com')
   
-  // Override/Filter if API key has restricted domains (and not '*')
   if (apiKeyRecord && apiKeyRecord.permittedDomains !== '*') {
     const allowed = apiKeyRecord.permittedDomains.split(',').map(d => d.trim())
     if (!allowed.includes(domain)) {
@@ -67,10 +66,8 @@ api.post('/api/inboxes', async (c) => {
 
   let address: string
   if (body.address) {
-    // Custom prefix — bersihin karakter aneh
     const clean = body.address.toLowerCase().replace(/[^a-z0-9._-]/g, '')
     address = `${clean}@${domain}`
-    // Skip kalau kosong
     if (!clean) address = `${randomString(12)}@${domain}`
   } else {
     address = `${randomString(12)}@${domain}`
@@ -80,7 +77,6 @@ api.post('/api/inboxes', async (c) => {
 
   if (sid) await linkEmailToSession(c.env.DB, sid, address)
   
-  // Link ke dashboard session juga kalau ada
   const dashSid = c.req.header('x-dashboard-sid')
   if (dashSid) await linkEmailToSession(c.env.DB, dashSid, address)
 
@@ -96,20 +92,12 @@ api.get('/api/inboxes/:addr/messages', async (c) => {
 
 api.delete('/api/inboxes/:addr', async (c) => {
   const addr = decodeURIComponent(c.req.param('addr'))
-  // Clean up — D1 cascade handles FK cleanup
   return c.json({ ok: true })
 })
-
-// ════════════════════════════════════════════════════════════
-//  WEB DASHBOARD API (JSON)
-// ════════════════════════════════════════════════════════════
-
-// Note: Auth routes (/auth/*) are handled in src/index.ts (HTML forms)
 
 api.get('/dashboard/inboxes', async (c) => {
   const sid = requireAuth(c)
   if (typeof sid === 'object') return sid
-  // Tampilkan semua email di DB — gak cuma yang ter-link ke session
   const inboxes = await getAllEmails(c.env.DB)
   return c.json(inboxes)
 })
@@ -118,7 +106,7 @@ api.post('/dashboard/inboxes', async (c) => {
   const sid = requireAuth(c)
   if (typeof sid === 'object') return sid
 
-  const body = await c.req.json<{ local?: string; domain?: string }>().catch(() => ({}))
+  const body = (await c.req.json().catch(() => ({}))) as { local?: string; domain?: string }
   const domains = (await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')).split(',').map(d => d.trim())
   const domain = (body.domain && domains.includes(body.domain)) ? body.domain : (domains[0] || 'example.com')
 
@@ -130,10 +118,8 @@ api.post('/dashboard/inboxes', async (c) => {
     address = `${randomString(12)}@${domain}`
   }
 
-  // Check if already exists
   const exists = await emailExists(c.env.DB, address)
   if (exists && body.local) {
-    // If user requested custom address and it exists, just link
     await linkEmailToSession(c.env.DB, sid, address)
     return c.json({ address, linked: true })
   }
@@ -161,10 +147,6 @@ api.get('/dashboard/inboxes/:addr/messages', async (c) => {
 
 export default api
 
-// ════════════════════════════════════════════════════════════
-//  DASHBOARD API - API KEYS
-// ════════════════════════════════════════════════════════════
-
 import { getApiKeys, createApiKey, deleteApiKey } from '../db/queries'
 
 api.get('/dashboard/apikeys', async (c) => {
@@ -178,7 +160,7 @@ api.post('/dashboard/apikeys', async (c) => {
   const sid = requireAuth(c)
   if (typeof sid === 'object') return sid
   
-  const body = await c.req.json<{ domains?: string }>().catch(() => ({}))
+  const body = (await c.req.json().catch(() => ({}))) as { domains?: string }
   const permitted = body.domains && body.domains.trim() ? body.domains.trim() : '*'
   const keyStr = 'tm_' + crypto.randomUUID().replace(/-/g, '')
   
@@ -194,12 +176,11 @@ api.delete('/dashboard/apikeys/:id', async (c) => {
 })
 import { getSetting, updateSetting } from '../db/queries'
 
-// ── Settings API ─────────────────────────────────────────────
 api.post('/dashboard/settings', async (c) => {
   const sid = requireAuth(c)
   if (typeof sid === 'object') return sid
   
-  const body = await c.req.json<{ mail_domains?: string, auth_password?: string }>().catch(() => ({}))
+  const body = (await c.req.json().catch(() => ({}))) as { mail_domains?: string; auth_password?: string }
   
   if (body.mail_domains !== undefined) {
     await updateSetting(c.env.DB, 'mail_domains', body.mail_domains)
