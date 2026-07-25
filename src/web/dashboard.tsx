@@ -54,19 +54,16 @@ export function DashboardPage({
           `)}
         </div>
         
-        <div style="display:flex;gap:16px;">
-          <div style="flex:1">
-            <label style="font-size:0.85rem;color:var(--text-dim);display:block;margin-bottom:6px">Max Inboxes (0 = Unlimited)</label>
-            <input type="number" id="maxInboxes" placeholder="0" min="0" value="0" style="width:100%" />
+        <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:130px;">
+            <label style="font-size:0.8rem;color:var(--text-dim);display:block;margin-bottom:6px">Max Inboxes (0 = ∞)</label>
+            <input type="number" id="maxInboxes" placeholder="0" min="0" value="0" style="width:100%;padding:8px 12px;font-size:0.875rem" />
           </div>
-          <div style="flex:1">
-            <label style="font-size:0.85rem;color:var(--text-dim);display:block;margin-bottom:6px">Max Messages (0 = Unlimited)</label>
-            <input type="number" id="maxMessages" placeholder="0" min="0" value="0" style="width:100%" />
+          <div style="flex:1;min-width:130px;">
+            <label style="font-size:0.8rem;color:var(--text-dim);display:block;margin-bottom:6px">Max Messages (0 = ∞)</label>
+            <input type="number" id="maxMessages" placeholder="0" min="0" value="0" style="width:100%;padding:8px 12px;font-size:0.875rem" />
           </div>
-        </div>
-
-        <div>
-          <button type="submit" class="btn-primary" id="btnCreateKey">Generate Key</button>
+          <button type="submit" class="btn-primary" id="btnCreateKey" style="padding:9px 20px;white-space:nowrap;height:38px">Generate Key</button>
         </div>
       </form>
 
