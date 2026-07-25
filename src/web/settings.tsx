@@ -157,21 +157,7 @@ export function SettingsPage({
     `})}
 
     <script>
-      let activeDomains = ${raw(JSON.stringify(initialDomains))};      let toastTimer = null;
-      function showToast(msg, isError = false) {
-        const t = document.getElementById('toast');
-        if (!t) return;
-        if (toastTimer) clearTimeout(toastTimer);
-
-        t.style.border = isError ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)';
-        t.style.boxShadow = isError ? '0 4px 20px rgba(239, 68, 68, 0.25)' : '0 4px 20px rgba(16, 185, 129, 0.25)';
-        const icon = isError ? '<i data-lucide="alert-circle" style="color:#ef4444;width:18px;height:18px;margin-right:8px;vertical-align:middle"></i>' : '<i data-lucide="check-circle" style="color:#10b981;width:18px;height:18px;margin-right:8px;vertical-align:middle"></i>';
-        t.innerHTML = icon + '<span style="vertical-align:middle">' + msg + '</span>';
-        lucide.createIcons();
-
-        t.classList.add('show');
-        toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
-      }
+      let activeDomains = ${raw(JSON.stringify(initialDomains))};
 
       function handlePublicScope(scope) {
         const btnAll = document.getElementById('pub-scope-all');
@@ -194,7 +180,7 @@ export function SettingsPage({
           container.style.display = 'block';
         }
         updatePublicCountBadge();
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
       }
 
       function filterPublicDomainList() {
@@ -275,7 +261,7 @@ export function SettingsPage({
               '<span>@' + d + '</span>' +
             '</label>';
           }).join('');
-          lucide.createIcons();
+          if (window.lucide) lucide.createIcons();
         }
         updatePublicCountBadge();
       }
@@ -299,7 +285,7 @@ export function SettingsPage({
         
         btn.disabled = true;
         btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm spin-anim"></i> Adding...';
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
 
         const oldDomains = [...activeDomains];
         activeDomains.push(val);
@@ -322,7 +308,7 @@ export function SettingsPage({
         } finally {
           btn.disabled = false;
           btn.innerHTML = '<i data-lucide="plus" class="icon-sm"></i> Add Domain';
-          lucide.createIcons();
+          if (window.lucide) lucide.createIcons();
         }
       }
 
@@ -372,7 +358,7 @@ export function SettingsPage({
         const btn = document.getElementById('btnSavePublicCfg');
         btn.disabled = true;
         btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm spin-anim"></i> Saving Public Settings...';
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
 
         try {
           const res = await fetch('/api/settings', {
@@ -394,7 +380,7 @@ export function SettingsPage({
         } finally {
           btn.disabled = false;
           btn.innerHTML = '<i data-lucide="shield-check" class="icon-sm"></i> Save Public Settings';
-          lucide.createIcons();
+          if (window.lucide) lucide.createIcons();
         }
       }
 
@@ -415,7 +401,7 @@ export function SettingsPage({
         const btn = document.getElementById('btnSaveCfg');
         btn.disabled = true;
         btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm spin-anim"></i> Saving Password...';
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
 
         try {
           if (p1) {
@@ -439,7 +425,7 @@ export function SettingsPage({
         } finally {
           btn.disabled = false;
           btn.innerHTML = '<i data-lucide="lock" class="icon-sm"></i> Save Password';
-          lucide.createIcons();
+          if (window.lucide) lucide.createIcons();
         }
       }
     </script>
