@@ -18,6 +18,7 @@ import { requireAuth, setSessionCookie, clearSessionCookie, verifyPassword } fro
 import { getSessionEmails, getAllEmails, linkEmailToSession, createSession } from './db/queries'
 import { LoginPage } from './web/login'
 import { DashboardPage } from './web/dashboard'
+import { InboxesListPage } from './web/inboxes-list'
 import { DocsPage } from './web/docs'
 import { SettingsPage } from './web/settings'
 import { InboxPage } from './web/inbox'
@@ -157,6 +158,27 @@ app.get('/docs', async (c) => {
   const sid = requireAuth(c)
   if (typeof sid === 'object') return sid
   return c.html(DocsPage())
+})
+
+app.get('/inboxes', async (c) => {
+  const sid = requireAuth(c)
+  if (typeof sid === 'object') return sid
+
+  try {
+    const page = Math.max(1, parseInt(c.req.query('page') || '1', 10))
+    const limit = 20
+    const offset = (page - 1) * limit
+
+    const { getAllEmails } = await import('./db/queries')
+    const { total, totalMessages, emails: inboxes } = await getAllEmails(c.env.DB, limit, offset)
+
+    return c.html(InboxesListPage({
+      inboxes: inboxes as any[], totalInboxes: total, totalMessages, currentPage: page,
+    }))
+  } catch (err: any) {
+    console.error('[inboxes] error:', err?.message)
+    return c.html(InboxesListPage({ inboxes: [], totalInboxes: 0, totalMessages: 0, currentPage: 1 }))
+  }
 })
 
 app.get('/inbox/:addr', async (c) => {

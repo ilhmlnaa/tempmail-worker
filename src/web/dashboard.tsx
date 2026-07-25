@@ -113,7 +113,16 @@ export function DashboardPage({
       </form>
     `}) : ''}
 
-    ${Panel({ title: apiKeyFilter ? 'Generated Inboxes' : 'All Generated Inboxes', icon: 'list', children: html`
+    ${!apiKeyFilter ? Panel({ title: 'Generated Inboxes Management', icon: 'inbox', children: html`
+      <div style="padding:16px; text-align:center; background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid var(--border)">
+        <p style="color:var(--text-dim); margin-bottom:16px;">
+          View and manage all disposable inboxes created by API Keys or custom creation.
+        </p>
+        <a href="/inboxes" class="btn-primary" style="display:inline-flex; text-decoration:none;">
+          <i data-lucide="list" class="icon-sm" style="margin-right:8px"></i> View All Inboxes
+        </a>
+      </div>
+    `}) : Panel({ title: 'Generated Inboxes', icon: 'list', children: html`
       <div class="inbox-list">
         ${inboxes.length === 0 ? html`<p style="color:var(--text-dim);text-align:center;padding:20px">No inboxes yet.</p>` : ''}
         ${inboxes.map(i => html`
@@ -138,11 +147,11 @@ export function DashboardPage({
         <a href="${baseUrl}?page=${currentPage - 1}" class="btn-primary" style="${currentPage <= 1 ? 'pointer-events:none;opacity:0.5' : ''}">
           <i data-lucide="chevron-left" class="icon-inline"></i> Prev
         </a>
-        
+
         <span style="color:var(--text-dim); font-size:0.9rem;">
           Page <strong>${currentPage}</strong> of ${totalPages}
         </span>
-        
+
         <a href="${baseUrl}?page=${currentPage + 1}" class="btn-primary" style="${currentPage >= totalPages ? 'pointer-events:none;opacity:0.5' : ''}">
           Next <i data-lucide="chevron-right" class="icon-inline" style="margin-left:8px; margin-right:0"></i>
         </a>

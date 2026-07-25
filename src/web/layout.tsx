@@ -24,6 +24,9 @@ export function Layout({ title, children, session }: { title: string; children: 
         <a href="/dashboard" id="nav-dashboard">
           <i data-lucide="layout-dashboard"></i> Overview
         </a>
+        <a href="/inboxes" id="nav-inboxes">
+          <i data-lucide="inbox"></i> Inboxes
+        </a>
         <a href="/settings" id="nav-settings">
           <i data-lucide="settings"></i> Settings
         </a>
@@ -48,6 +51,9 @@ export function Layout({ title, children, session }: { title: string; children: 
     const path = window.location.pathname;
     if(path.startsWith('/dashboard') || path === '/') {
       const el = document.getElementById('nav-dashboard');
+      if (el) el.classList.add('active');
+    } else if(path.startsWith('/inboxes')) {
+      const el = document.getElementById('nav-inboxes');
       if (el) el.classList.add('active');
     } else if(path.startsWith('/settings')) {
       const el = document.getElementById('nav-settings');
