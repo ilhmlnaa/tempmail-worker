@@ -7,11 +7,26 @@ export function DocsPage() {
     <style>
       .swagger-ui .scheme-container, 
       .swagger-ui .topbar { display: none; }
-      .swagger-ui { font-family: inherit; }
-      .swagger-ui .info { margin: 20px 0; }
+      .swagger-ui { font-family: inherit; color: var(--text); }
+      .swagger-ui .info, .swagger-ui .info h1, .swagger-ui .info h2, .swagger-ui .info h3, .swagger-ui .info h4, .swagger-ui .info h5, .swagger-ui .info p, .swagger-ui .info li, .swagger-ui .info a { color: var(--text); }
+      .swagger-ui .info .title { color: var(--text); }
+      .swagger-ui .opblock .opblock-summary-operation-id, .swagger-ui .opblock .opblock-summary-path, .swagger-ui .opblock .opblock-summary-path__deprecated { color: var(--text); }
+      .swagger-ui .opblock-description-wrapper p, .swagger-ui .opblock-external-docs-wrapper p, .swagger-ui .opblock-title_normal p { color: var(--text-dim); }
+      .swagger-ui table thead tr td, .swagger-ui table thead tr th { color: var(--text); border-bottom-color: var(--border); }
+      .swagger-ui table tbody tr td { color: var(--text); }
+      .swagger-ui .parameter__name, .swagger-ui .parameter__type, .swagger-ui .parameter__deprecated, .swagger-ui .parameter__in { color: var(--text); }
+      .swagger-ui .response-col_status, .swagger-ui .response-col_description__inner div.markdown, .swagger-ui .response-col_description__inner div.renderedMarkdown { color: var(--text); }
+      .swagger-ui .opblock-body pre.microlight { background: rgba(0,0,0,0.5) !important; color: #fff !important; }
+      .swagger-ui .btn { color: var(--text); border-color: var(--border); }
+      .swagger-ui .btn:hover { background: rgba(255,255,255,0.1); }
       .swagger-ui .opblock { border-radius: 8px; border: 1px solid var(--border); box-shadow: none; background: rgba(255,255,255,0.01); }
       .swagger-ui .opblock .opblock-summary-method { border-radius: 6px; }
       .swagger-ui section.models { border-color: var(--border); border-radius: 8px; }
+      .swagger-ui section.models h4 span { color: var(--text); }
+      .swagger-ui .model, .swagger-ui .model-title { color: var(--text); }
+      .swagger-ui .prop-type, .swagger-ui .prop-format { color: #a1a1aa; }
+      .swagger-ui svg { fill: var(--text); }
+      .swagger-ui .responses-inner h4, .swagger-ui .responses-inner h5 { color: var(--text); }
     </style>
     <div id="swagger-ui"></div>
     
