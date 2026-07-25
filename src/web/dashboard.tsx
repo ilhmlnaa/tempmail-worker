@@ -34,36 +34,41 @@ export function DashboardPage({
 
     ${!apiKeyFilter ? Panel({ title: 'API Keys & Permissions', icon: 'key', children: html`
       <form class="api-key-box" onsubmit="createApiKey(event)">
-        <div class="scope-selector">
-          <label class="scope-option selected" id="scope-label-all">
-            <input type="radio" name="domainScope" value="*" checked onchange="handleScopeChange('*')" />
-            <span style="font-weight:500;font-size:0.9rem">All Domains (*)</span>
-          </label>
-          <label class="scope-option" id="scope-label-specific">
-            <input type="radio" name="domainScope" value="specific" onchange="handleScopeChange('specific')" />
-            <span style="font-weight:500;font-size:0.9rem">Specific Domains</span>
-          </label>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div class="segmented-control">
+            <label class="segmented-btn active" id="scope-btn-all">
+              <input type="radio" name="domainScope" value="*" checked onchange="handleScopeChange('*')" style="display:none" />
+              <i data-lucide="globe" class="icon-sm"></i> All Domains (*)
+            </label>
+            <label class="segmented-btn" id="scope-btn-specific">
+              <input type="radio" name="domainScope" value="specific" onchange="handleScopeChange('specific')" style="display:none" />
+              <i data-lucide="filter" class="icon-sm"></i> Specific Domains
+            </label>
+          </div>
+
+          <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+            <div style="width:130px;">
+              <label style="font-size:0.75rem;color:var(--text-dim);display:block;margin-bottom:4px">Max Inboxes (0=∞)</label>
+              <input type="number" id="maxInboxes" placeholder="0" min="0" value="0" style="width:100%;padding:6px 10px;font-size:0.85rem;" />
+            </div>
+            <div style="width:130px;">
+              <label style="font-size:0.75rem;color:var(--text-dim);display:block;margin-bottom:4px">Max Msgs (0=∞)</label>
+              <input type="number" id="maxMessages" placeholder="0" min="0" value="0" style="width:100%;padding:6px 10px;font-size:0.85rem;" />
+            </div>
+            <button type="submit" class="btn-primary" id="btnCreateKey" style="padding:7px 18px;font-size:0.85rem;height:34px">
+              <i data-lucide="plus" class="icon-sm"></i> Generate Key
+            </button>
+          </div>
         </div>
         
-        <div id="specificDomains" class="domains-grid" style="display:none">
+        <div id="specificDomains" class="domain-badge-grid" style="display:none">
           ${domains.map(d => html`
-            <label class="domain-chip">
-              <input type="checkbox" name="selectedDomains" value="${d}" />
+            <label class="domain-tag">
+              <input type="checkbox" name="selectedDomains" value="${d}" onchange="toggleTag(this)" style="display:none" />
+              <i data-lucide="check" class="icon-sm tag-check" style="display:none"></i>
               <span>${d}</span>
             </label>
           `)}
-        </div>
-        
-        <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:130px;">
-            <label style="font-size:0.8rem;color:var(--text-dim);display:block;margin-bottom:6px">Max Inboxes (0 = ∞)</label>
-            <input type="number" id="maxInboxes" placeholder="0" min="0" value="0" style="width:100%;padding:8px 12px;font-size:0.875rem" />
-          </div>
-          <div style="flex:1;min-width:130px;">
-            <label style="font-size:0.8rem;color:var(--text-dim);display:block;margin-bottom:6px">Max Messages (0 = ∞)</label>
-            <input type="number" id="maxMessages" placeholder="0" min="0" value="0" style="width:100%;padding:8px 12px;font-size:0.875rem" />
-          </div>
-          <button type="submit" class="btn-primary" id="btnCreateKey" style="padding:9px 20px;white-space:nowrap;height:38px">Generate Key</button>
         </div>
       </form>
 
@@ -72,18 +77,19 @@ export function DashboardPage({
         ${apiKeys && apiKeys.map(k => html`
           <div class="inbox-item" id="keyrow-${k.id}">
             <div class="inbox-info">
-              <h4 style="color:var(--primary);display:flex;align-items:center;gap:8px">
-                ${k.keyValue}
-                <button type="button" class="btn-icon" onclick="copyKey('${k.keyValue}')" title="Copy Key" style="padding:4px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                <span style="font-family:monospace;font-weight:600;font-size:1.05rem;color:var(--primary)">${k.keyValue}</span>
+                <button type="button" class="btn-icon" onclick="copyKey('${k.keyValue}')" title="Copy Key" style="padding:2px">
                   <i data-lucide="copy" class="icon-sm"></i>
                 </button>
-              </h4>
-              <p>
-                Domains: <span style="color:#fff">${k.permittedDomains}</span> &nbsp;&bull;&nbsp;
-                Inboxes: <span style="color:#fff">${k.maxInboxes > 0 ? k.maxInboxes : 'Unlimited'}</span> &nbsp;&bull;&nbsp;
-                Messages: <span style="color:#fff">${k.maxMessages > 0 ? k.maxMessages : 'Unlimited'}</span> &nbsp;&bull;&nbsp;
-                Created: ${new Date(k.createdAt).toLocaleDateString()}
-              </p>
+                <span style="background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.2);padding:2px 8px;border-radius:12px;font-size:0.7rem;font-weight:600">Active</span>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+                <span class="key-chip">Domains: <strong>${k.permittedDomains}</strong></span>
+                <span class="key-chip">Inboxes: <strong>${k.maxInboxes > 0 ? k.maxInboxes : '∞'}</strong></span>
+                <span class="key-chip">Messages: <strong>${k.maxMessages > 0 ? k.maxMessages : '∞'}</strong></span>
+                <span style="font-size:0.75rem;color:var(--text-dim);margin-left:4px">${new Date(k.createdAt).toLocaleDateString()}</span>
+              </div>
             </div>
             <div class="actions">
               <a href="/dashboard/apikeys/${k.id}" class="btn-icon" title="View Generated Inboxes"><i data-lucide="eye"></i></a>
@@ -153,16 +159,28 @@ export function DashboardPage({
 
       function handleScopeChange(scope) {
         const container = document.getElementById('specificDomains');
-        const labelAll = document.getElementById('scope-label-all');
-        const labelSpecific = document.getElementById('scope-label-specific');
+        const btnAll = document.getElementById('scope-btn-all');
+        const btnSpecific = document.getElementById('scope-btn-specific');
         if (scope === 'specific') {
-          container.style.display = 'grid';
-          labelAll.classList.remove('selected');
-          labelSpecific.classList.add('selected');
+          container.style.display = 'flex';
+          btnAll.classList.remove('active');
+          btnSpecific.classList.add('active');
         } else {
           container.style.display = 'none';
-          labelAll.classList.add('selected');
-          labelSpecific.classList.remove('selected');
+          btnAll.classList.add('active');
+          btnSpecific.classList.remove('active');
+        }
+      }
+
+      function toggleTag(cb) {
+        const tag = cb.closest('.domain-tag');
+        const check = tag.querySelector('.tag-check');
+        if (cb.checked) {
+          tag.classList.add('checked');
+          if (check) check.style.display = 'inline-block';
+        } else {
+          tag.classList.remove('checked');
+          if (check) check.style.display = 'none';
         }
       }
 

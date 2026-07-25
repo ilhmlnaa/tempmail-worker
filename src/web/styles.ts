@@ -184,79 +184,88 @@ select option {
 }
 
 .api-key-box {
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin-bottom: 24px;
 }
-.scope-selector {
-  display: flex;
-  gap: 12px;
+.segmented-control {
+  display: inline-flex;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 4px;
+  width: fit-content;
 }
-.scope-option {
-  flex: 1;
+.segmented-btn {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.2s;
+  gap: 6px;
 }
-.scope-option:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-.scope-option.selected {
-  border-color: var(--primary);
-  background: rgba(59, 130, 246, 0.1);
-}
-.scope-option input[type="radio"] {
-  accent-color: var(--primary);
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-.domains-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 10px;
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-.domain-chip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.2s;
-}
-.domain-chip:hover {
-  border-color: var(--primary);
-  background: rgba(59, 130, 246, 0.05);
-}
-.domain-chip input[type="checkbox"] {
-  accent-color: var(--primary);
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-.domain-chip span {
-  font-family: monospace;
-  font-size: 0.875rem;
+.segmented-btn:hover {
   color: var(--text);
-  word-break: break-all;
+}
+.segmented-btn.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+.domain-badge-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.domain-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  transition: all 0.2s;
+}
+.domain-tag:hover {
+  border-color: var(--primary);
+  background: rgba(59, 130, 246, 0.08);
+}
+.domain-tag.checked {
+  border-color: var(--primary);
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+.key-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+.key-chip strong {
+  color: #fff;
 }
 
 .create-form {
