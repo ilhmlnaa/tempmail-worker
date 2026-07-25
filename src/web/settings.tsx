@@ -1,4 +1,4 @@
-import { html } from 'hono/html'
+import { html, raw } from 'hono/html'
 import { Layout } from './layout'
 import { Panel } from './components'
 
@@ -64,7 +64,7 @@ export function SettingsPage({ domains, hasAuthSecret }: { domains: string; hasA
     `})}
 
     <script>
-      let activeDomains = ${JSON.stringify(initialDomains)};
+      let activeDomains = ${raw(JSON.stringify(initialDomains))};
 
       function renderDomainTags() {
         const container = document.getElementById('domainTagsList');
@@ -72,12 +72,12 @@ export function SettingsPage({ domains, hasAuthSecret }: { domains: string; hasA
           container.innerHTML = '<p style="color:var(--text-dim);font-size:0.85rem">No domains added yet. Add a domain below.</p>';
           return;
         }
-        container.innerHTML = activeDomains.map(d => \`
-          <div class="domain-tag-item" data-domain="\${d}">
+        container.innerHTML = activeDomains.map(d => 
+          \`<div class="domain-tag-item" data-domain="\${d}">
             <span>\${d}</span>
             <button type="button" onclick="removeDomain('\${d}')" title="Remove domain">&times;</button>
-          </div>
-        \`).join('');
+          </div>\`
+        ).join('');
       }
 
       function addDomain() {
