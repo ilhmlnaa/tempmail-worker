@@ -147,16 +147,16 @@ export function DashboardPage({
 
       <div class="inbox-list">
         ${inboxes.length === 0 ? html`<p style="color:var(--text-dim);text-align:center;padding:20px">No inboxes found.</p>` : ''}
-        ${inboxes.map(i => html`
+        ${inboxes.slice(0, 5).map(i => html`
           <div class="inbox-item" id="row-${i.address}">
             <div class="inbox-info">
-              <h4><a href="/inbox/${encodeURIComponent(i.address)}">${i.address}</a></h4>
+              <h4><a href="/admin/inbox/${encodeURIComponent(i.address)}">${i.address}</a></h4>
               <p>Created: ${new Date(i.createdAt).toLocaleString()}</p>
             </div>
             <div class="inbox-meta">
               <span class="badge">${i.messageCount || 0} msgs</span>
               <div class="actions">
-                <a href="/inbox/${encodeURIComponent(i.address)}" class="btn-icon" title="View Inbox"><i data-lucide="eye"></i></a>
+                <a href="/admin/inbox/${encodeURIComponent(i.address)}" class="btn-icon" title="View Inbox"><i data-lucide="eye"></i></a>
                 ${IconButton({ icon: 'trash-2', onclick: `del('${i.address}')`, title: 'Delete', variant: 'danger' })}
               </div>
             </div>
@@ -164,21 +164,14 @@ export function DashboardPage({
         `)}
       </div>
 
-      ${totalPages > 1 ? html`
-      <div style="display:flex; justify-content:center; align-items:center; gap:16px; margin-top:24px; padding-top:16px; border-top:1px solid var(--border)">
-        <a href="${baseUrl}?page=${currentPage - 1}" class="btn-primary" style="${currentPage <= 1 ? 'pointer-events:none;opacity:0.5' : ''}">
-          <i data-lucide="chevron-left" class="icon-inline"></i> Prev
-        </a>
-        
-        <span style="color:var(--text-dim); font-size:0.9rem;">
-          Page <strong>${currentPage}</strong> of ${totalPages}
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:24px; padding-top:16px; border-top:1px solid var(--border)">
+        <span style="color:var(--text-dim); font-size:0.875rem">
+          Showing <strong>${Math.min(inboxes.length, 5)}</strong> of <strong>${totalInboxes}</strong> active inboxes
         </span>
-        
-        <a href="${baseUrl}?page=${currentPage + 1}" class="btn-primary" style="${currentPage >= totalPages ? 'pointer-events:none;opacity:0.5' : ''}">
-          Next <i data-lucide="chevron-right" class="icon-inline" style="margin-left:8px; margin-right:0"></i>
+        <a href="/admin/inboxes" class="btn-primary" style="text-decoration:none">
+          <i data-lucide="inbox" class="icon-inline" style="margin-right:8px"></i> View All Inboxes (${totalInboxes}) <i data-lucide="arrow-right" class="icon-inline" style="margin-left:8px;margin-right:0"></i>
         </a>
       </div>
-      ` : ''}
     `})}
 
     <dialog id="keyModal" class="confirm-modal" style="max-width:500px">
