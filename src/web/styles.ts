@@ -3,7 +3,7 @@ import { html } from 'hono/html'
 export const css = `
 :root {
   --bg: #0b0f19;
-  --bg-panel: rgba(26, 34, 52, 0.75);
+  --bg-panel: rgba(21, 29, 42, 0.96);
   --bg-panel-solid: #151d2a;
   --bg-hover: rgba(255, 255, 255, 0.06);
   --text: #f8fafc;
@@ -87,9 +87,7 @@ select option {
   justify-content: space-between;
   align-items: center;
   padding: 14px 20px;
-  background: rgba(11, 15, 25, 0.9);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: #0f172a;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -102,6 +100,27 @@ select option {
   align-items: center;
   gap: 10px;
   color: var(--text);
+}
+.brand-logo-img {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.brand-logo-img-sm {
+  height: 24px;
+  width: 24px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.brand-logo-img-lg {
+  height: 48px;
+  width: 48px;
+  object-fit: contain;
+  border-radius: 10px;
+  flex-shrink: 0;
 }
 .mobile-menu-btn {
   background: rgba(255, 255, 255, 0.05);
@@ -154,9 +173,7 @@ select option {
   position: sticky;
   top: 0;
   overflow-y: auto;
-  background: rgba(21, 29, 42, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: #131b2a;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -261,8 +278,6 @@ select option {
 }
 .stat-card {
   background: var(--bg-panel);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   padding: 24px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
@@ -330,8 +345,6 @@ select option {
 }
 .chart-card {
   background: var(--bg-panel);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   padding: 24px;
@@ -421,8 +434,6 @@ select option {
 
 .panel {
   background: var(--bg-panel);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   padding: 28px;
@@ -863,8 +874,6 @@ select option {
 
 .auth-card {
   background: var(--bg-panel);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   padding: 40px 32px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
@@ -931,8 +940,6 @@ svg.lucide { stroke-width: 2; }
 }
 .confirm-modal::backdrop {
   background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
 }
 .confirm-icon {
   width: 48px; height: 48px;
@@ -978,15 +985,24 @@ svg.lucide { stroke-width: 2; }
 
 @media (max-width: 768px) {
   html, body {
-    height: auto;
-    overflow-x: hidden;
-    overflow-y: auto;
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  body.admin-body {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
   }
 
   .app-layout {
-    flex-direction: column;
-    height: auto;
-    overflow: visible;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
   }
 
   .mobile-header {
@@ -1013,10 +1029,11 @@ svg.lucide { stroke-width: 2; }
   }
 
   .main {
-    height: auto;
-    overflow-y: visible;
-    padding: 20px 16px;
-    width: 100%;
+    height: auto !important;
+    min-height: calc(100vh - 65px) !important;
+    overflow-y: visible !important;
+    padding: 20px 16px 100px 16px !important;
+    width: 100% !important;
   }
 
   .dash-header {
@@ -1221,9 +1238,7 @@ svg.lucide { stroke-width: 2; }
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(11, 15, 25, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(11, 15, 25, 0.95);
   border-bottom: 1px solid var(--border);
 }
 
@@ -1323,8 +1338,6 @@ svg.lucide { stroke-width: 2; }
   max-width: 720px;
   margin: 0 auto;
   background: var(--bg-panel);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-lg);
   box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6), var(--shadow-glow);
@@ -1511,10 +1524,103 @@ svg.lucide { stroke-width: 2; }
   gap: 16px;
 }
 
+/* Landing Mobile Header & Right Drawer */
+.landing-mobile-menu-btn {
+  display: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.landing-mobile-menu-btn:hover {
+  background: var(--primary-glow);
+  border-color: var(--primary);
+}
+
+.landing-drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.landing-drawer-backdrop.show {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.landing-drawer {
+  position: fixed;
+  top: 0;
+  left: -280px;
+  width: 280px;
+  height: 100vh;
+  background: #131b2a;
+  border-right: 1px solid var(--border);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 5px 0 30px rgba(0, 0, 0, 0.6);
+}
+.landing-drawer.open {
+  transform: translateX(280px);
+}
+.landing-drawer-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.landing-drawer-nav {
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+.landing-drawer-nav a {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-dim);
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+.landing-drawer-nav a:hover, .landing-drawer-nav a.active {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+.landing-drawer-nav a.drawer-btn-admin {
+  margin-top: auto;
+  background: var(--primary);
+  color: #fff;
+  justify-content: center;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+}
+.landing-drawer-nav a.drawer-btn-admin:hover {
+  background: var(--primary-hover);
+}
+
 @media (max-width: 768px) {
   .hero-title { font-size: 2.25rem; }
   .hero-subtitle { font-size: 0.95rem; }
-  .landing-nav { display: none; }
+  .landing-nav { display: none !important; }
+  .landing-mobile-menu-btn { display: flex !important; }
   .widget-email-row { flex-direction: column; }
   .widget-form-row { flex-direction: column; }
   .footer-content { flex-direction: column; text-align: center; }
