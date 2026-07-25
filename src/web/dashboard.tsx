@@ -25,7 +25,6 @@ export function DashboardPage({
       ` : ''}
     </div>
 
-    <!-- Stats -->
     <div class="stats-grid">
       ${StatCard({ label: 'Total Inboxes', value: totalInboxes })}
       ${StatCard({ label: 'Total Messages', value: totalMessages })}
@@ -33,30 +32,31 @@ export function DashboardPage({
       ${StatCard({ label: 'API Keys', value: apiKeys.length })}
     </div>
 
-    <!-- API Keys Panel -->
     ${!apiKeyFilter ? Panel({ title: 'API Keys & Permissions', icon: 'key', children: html`
-      <form class="create-form" onsubmit="createApiKey(event)" style="margin-bottom:24px;">
-        <div style="margin-bottom:16px; display:flex; gap:16px;">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 16px;background:rgba(255,255,255,0.02);border-radius:6px;border:1px solid var(--border);flex:1;justify-content:center">
-            <input type="radio" name="domainScope" value="*" checked onchange="document.getElementById('specificDomains').style.display='none'" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" />
+      <form class="api-key-box" onsubmit="createApiKey(event)">
+        <div class="scope-selector">
+          <label class="scope-option selected" id="scope-label-all">
+            <input type="radio" name="domainScope" value="*" checked onchange="handleScopeChange('*')" />
             <span style="font-weight:500;font-size:0.9rem">All Domains (*)</span>
           </label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 16px;background:rgba(255,255,255,0.02);border-radius:6px;border:1px solid var(--border);flex:1;justify-content:center">
-            <input type="radio" name="domainScope" value="specific" onchange="document.getElementById('specificDomains').style.display='grid'" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" />
+          <label class="scope-option" id="scope-label-specific">
+            <input type="radio" name="domainScope" value="specific" onchange="handleScopeChange('specific')" />
             <span style="font-weight:500;font-size:0.9rem">Specific Domains</span>
           </label>
         </div>
         
-        <div id="specificDomains" style="display:none;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:12px;margin-bottom:20px;padding:16px;background:var(--panel-bg, rgba(0,0,0,0.2));border-radius:8px;border:1px solid var(--border)">
+        <div id="specificDomains" class="domains-grid" style="display:none">
           ${domains.map(d => html`
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;transition:border-color 0.2s ease;">
-              <input type="checkbox" name="selectedDomains" value="${d}" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" />
-              <span style="font-family:monospace;font-size:0.9rem;color:var(--text);word-break:break-all;">${d}</span>
+            <label class="domain-chip">
+              <input type="checkbox" name="selectedDomains" value="${d}" />
+              <span>${d}</span>
             </label>
           `)}
         </div>
         
-        <button type="submit" class="btn-primary" id="btnCreateKey">Generate Key</button>
+        <div>
+          <button type="submit" class="btn-primary" id="btnCreateKey">Generate Key</button>
+        </div>
       </form>
 
       <div class="inbox-list">
@@ -64,7 +64,12 @@ export function DashboardPage({
         ${apiKeys && apiKeys.map(k => html`
           <div class="inbox-item" id="keyrow-${k.id}">
             <div class="inbox-info">
-              <h4 style="color:var(--primary)">${k.keyValue}</h4>
+              <h4 style="color:var(--primary);display:flex;align-items:center;gap:8px">
+                ${k.keyValue}
+                <button type="button" class="btn-icon" onclick="copyKey('${k.keyValue}')" title="Copy Key" style="padding:4px">
+                  <i data-lucide="copy" class="icon-sm"></i>
+                </button>
+              </h4>
               <p>Domains: <span style="color:#fff">${k.permittedDomains}</span> &nbsp;&bull;&nbsp; Created: ${new Date(k.createdAt).toLocaleDateString()}</p>
             </div>
             <div class="actions">
@@ -76,7 +81,6 @@ export function DashboardPage({
       </div>
     `}) : ''}
 
-    <!-- Create Inbox -->
     ${!apiKeyFilter ? Panel({ title: 'Create Custom Inbox', icon: 'plus-circle', children: html`
       <form class="create-form" onsubmit="create(event)">
         <div class="input-group">
@@ -90,7 +94,6 @@ export function DashboardPage({
       </form>
     `}) : ''}
 
-    <!-- Inbox List -->
     ${Panel({ title: apiKeyFilter ? 'Generated Inboxes' : 'All Generated Inboxes', icon: 'list', children: html`
       <div class="inbox-list">
         ${inboxes.length === 0 ? html`<p style="color:var(--text-dim);text-align:center;padding:20px">No inboxes yet.</p>` : ''}
@@ -111,7 +114,6 @@ export function DashboardPage({
         `)}
       </div>
 
-      <!-- Pagination -->
       ${totalPages > 1 ? html`
       <div style="display:flex; justify-content:center; align-items:center; gap:16px; margin-top:24px; padding-top:16px; border-top:1px solid var(--border)">
         <a href="${baseUrl}?page=${currentPage - 1}" class="btn-primary" style="${currentPage <= 1 ? 'pointer-events:none;opacity:0.5' : ''}">
@@ -134,6 +136,26 @@ export function DashboardPage({
         const t = document.getElementById('toast');
         t.textContent = msg; t.classList.add('show');
         setTimeout(() => t.classList.remove('show'), 3000);
+      }
+
+      function handleScopeChange(scope) {
+        const container = document.getElementById('specificDomains');
+        const labelAll = document.getElementById('scope-label-all');
+        const labelSpecific = document.getElementById('scope-label-specific');
+        if (scope === 'specific') {
+          container.style.display = 'grid';
+          labelAll.classList.remove('selected');
+          labelSpecific.classList.add('selected');
+        } else {
+          container.style.display = 'none';
+          labelAll.classList.add('selected');
+          labelSpecific.classList.remove('selected');
+        }
+      }
+
+      function copyKey(val) {
+        navigator.clipboard.writeText(val);
+        showToast('API Key copied');
       }
       
       async function create(e) {
@@ -212,3 +234,4 @@ export function DashboardPage({
     `
   })
 }
+
