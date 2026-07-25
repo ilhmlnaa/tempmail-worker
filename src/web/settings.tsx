@@ -80,7 +80,7 @@ export function SettingsPage({ domains, hasAuthSecret }: { domains: string; hasA
         ).join('');
       }
 
-      function addDomain() {
+      async function addDomain() {
         const input = document.getElementById('newDomainInput');
         const val = input.value.trim().toLowerCase().replace(/[^a-z0-9.-]/g, '');
         if (!val) {
@@ -95,16 +95,51 @@ export function SettingsPage({ domains, hasAuthSecret }: { domains: string; hasA
           showToast('Domain is already added');
           return;
         }
+        
+        const oldDomains = [...activeDomains];
         activeDomains.push(val);
         input.value = '';
         renderDomainTags();
-        showToast('Domain added to list');
+
+        try {
+          const r = await fetch('/dashboard/settings', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ mail_domains: activeDomains.join(',') })
+          });
+          if (r.ok) {
+            showToast('Domain added & saved successfully');
+          } else {
+            throw new Error('Failed');
+          }
+        } catch(e) {
+          activeDomains = oldDomains;
+          renderDomainTags();
+          showToast('Failed to save domain to server');
+        }
       }
 
-      function removeDomain(d) {
+      async function removeDomain(d) {
+        const oldDomains = [...activeDomains];
         activeDomains = activeDomains.filter(item => item !== d);
         renderDomainTags();
-        showToast('Domain removed');
+
+        try {
+          const r = await fetch('/dashboard/settings', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ mail_domains: activeDomains.join(',') })
+          });
+          if (r.ok) {
+            showToast('Domain removed & saved');
+          } else {
+            throw new Error('Failed');
+          }
+        } catch(e) {
+          activeDomains = oldDomains;
+          renderDomainTags();
+          showToast('Failed to remove domain on server');
+        }
       }
 
       async function updateSettings(e) {

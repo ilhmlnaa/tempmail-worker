@@ -114,11 +114,26 @@ export function DashboardPage({
     `}) : ''}
 
     ${!apiKeyFilter ? Panel({ title: 'Generated Inboxes Management', icon: 'inbox', children: html`
-      <div style="padding:16px; text-align:center; background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid var(--border)">
-        <p style="color:var(--text-dim); margin-bottom:16px;">
-          View and manage all disposable inboxes created by API Keys or custom creation.
-        </p>
-        <a href="/inboxes" class="btn-primary" style="display:inline-flex; text-decoration:none;">
+      <div class="inbox-list">
+        ${inboxes.length === 0 ? html`<p style="color:var(--text-dim);text-align:center;padding:20px">No inboxes yet.</p>` : ''}
+        ${inboxes.slice(0, 5).map(i => html`
+          <div class="inbox-item" id="row-${i.address}">
+            <div class="inbox-info">
+              <h4><a href="/inbox/${encodeURIComponent(i.address)}">${i.address}</a></h4>
+              <p>Created: ${new Date(i.createdAt).toLocaleString()}</p>
+            </div>
+            <div class="inbox-meta">
+              <span class="badge">${i.messageCount || 0} msgs</span>
+              <div class="actions">
+                <a href="/inbox/${encodeURIComponent(i.address)}" class="btn-icon" title="View Inbox"><i data-lucide="eye"></i></a>
+                ${IconButton({ icon: 'trash-2', onclick: `del('${i.address}')`, title: 'Delete', variant: 'danger' })}
+              </div>
+            </div>
+          </div>
+        `)}
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <a href="/inboxes" class="btn-primary" style="display:inline-flex;text-decoration:none;">
           <i data-lucide="list" class="icon-sm" style="margin-right:8px"></i> View All Inboxes
         </a>
       </div>
