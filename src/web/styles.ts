@@ -603,6 +603,11 @@ svg.lucide { stroke-width: 2; }
   width: calc(100% - 32px);
   text-align: center;
   box-shadow: var(--shadow);
+  margin: auto;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 .confirm-modal::backdrop {
   background: rgba(0, 0, 0, 0.6);
