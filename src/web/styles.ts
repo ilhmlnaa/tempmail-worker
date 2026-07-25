@@ -17,7 +17,6 @@ export const css = `
   --radius-md: 12px;
   --radius-sm: 8px;
   --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
-  --gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -61,9 +60,7 @@ select option {
   padding: 24px;
   font-size: 1.25rem;
   font-weight: 700;
-  background: var(--gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--primary);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -91,7 +88,7 @@ select option {
   color: var(--text);
 }
 .sidebar-nav a.active {
-  background: var(--gradient);
+  background: var(--primary);
   color: #fff;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
@@ -161,9 +158,7 @@ select option {
   font-size: 2.5rem;
   font-weight: 700;
   margin-top: 12px;
-  background: var(--gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--primary);
 }
 
 .panel {
@@ -295,18 +290,21 @@ select option {
   border-right: 1px solid var(--border);
 }
 .btn-primary {
-  background: var(--gradient);
+  background: var(--primary);
   color: #fff;
   padding: 12px 24px;
   border-radius: var(--radius-sm);
   font-weight: 600;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 }
-.btn-primary:hover { opacity: 0.9; }
+.btn-primary:hover {
+  background: var(--primary-hover);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+}
 
 .inbox-list {
   display: grid;
@@ -381,7 +379,7 @@ select option {
 .msg-avatar {
   width: 40px; height: 40px;
   border-radius: 50%;
-  background: var(--gradient);
+  background: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -517,9 +515,7 @@ select option {
 .auth-card h1 {
   font-size: 2rem;
   margin-bottom: 8px;
-  background: var(--gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--primary);
 }
 .auth-card p {
   color: var(--text-dim);
@@ -531,14 +527,14 @@ select option {
 }
 .auth-btn {
   width: 100%;
-  background: var(--gradient);
+  background: var(--primary);
   color: #fff;
   padding: 12px;
   border-radius: var(--radius-sm);
   font-weight: bold;
   transition: opacity 0.2s;
 }
-.auth-btn:hover { opacity: 0.9; }
+.auth-btn:hover { background: var(--primary-hover); }
 .auth-error {
   color: var(--danger);
   margin-top: 16px;
