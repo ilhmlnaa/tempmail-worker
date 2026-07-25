@@ -5,17 +5,20 @@ function generateId(): string {
   return `${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`
 }
 
-/** Parse MIME email into structured parts */
+function decodeQuotedPrintable(input: string): string {
+  return input
+    .replace(/=\r?\n/g, '')
+    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+}
+
 function parseEmail(rawText: string): { from: string; subject: string; textBody: string; htmlBody: string | null } {
   const headers: Record<string, string> = {}
   const lines = rawText.split(/\r?\n/)
   let i = 0
 
-  // Parse headers
   while (i < lines.length && lines[i] !== '') {
     const line = lines[i]
     if (line.startsWith(' ') || line.startsWith('\t')) {
-      // Continuation header
       const lastKey = Object.keys(headers).pop()
       if (lastKey) headers[lastKey] += ' ' + line.trim()
     } else {
@@ -33,10 +36,8 @@ function parseEmail(rawText: string): { from: string; subject: string; textBody:
 
   let textBody = ''
   let htmlBody: string | null = null
-  const bodyLines: string[] = []
 
   if (boundary) {
-    // Multipart MIME — split by boundary
     const body = lines.slice(i + 1).join('\n')
     const parts = body.split(new RegExp(`--${escapeRegex(boundary)}(?:--)?\\s*`, 'g'))
 
@@ -64,13 +65,14 @@ function parseEmail(rawText: string): { from: string; subject: string; textBody:
       const partBody = partLines.slice(j + 1).join('\n').trim()
       const transferEncoding = (partHeaders['content-transfer-encoding'] || '').toLowerCase()
 
-      // Decode base64 if needed
       let decodedBody = partBody
       if (transferEncoding === 'base64') {
         try {
           const clean = partBody.replace(/[^A-Za-z0-9+/=]/g, '')
           if (clean) decodedBody = atob(clean)
-        } catch { /* keep original if decode fails */ }
+        } catch {}
+      } else if (transferEncoding === 'quoted-printable') {
+        decodedBody = decodeQuotedPrintable(partBody)
       }
 
       if (partContentType.includes('text/plain')) {
@@ -80,8 +82,17 @@ function parseEmail(rawText: string): { from: string; subject: string; textBody:
       }
     }
   } else {
-    // Plain text or single-part
-    const body = lines.slice(i + 1).join('\n').trim()
+    const transferEncoding = (headers['content-transfer-encoding'] || '').toLowerCase()
+    let body = lines.slice(i + 1).join('\n').trim()
+    if (transferEncoding === 'base64') {
+      try {
+        const clean = body.replace(/[^A-Za-z0-9+/=]/g, '')
+        if (clean) body = atob(clean)
+      } catch {}
+    } else if (transferEncoding === 'quoted-printable') {
+      body = decodeQuotedPrintable(body)
+    }
+
     if (contentType.toLowerCase().includes('text/html')) {
       htmlBody = body
     } else {

@@ -11,6 +11,13 @@ interface Message {
   createdAt: string
 }
 
+function decodeQP(str: string): string {
+  if (!str) return str
+  return str
+    .replace(/=\r?\n/g, '')
+    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+}
+
 export function InboxPage({ address, messages }: { address: string; messages: Message[] }) {
   return Layout({
     title: address,
@@ -42,6 +49,8 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
       const senderName = msg.from.replace(/<.*>/, '').trim().replace(/"/g, '') || msg.from
       const senderEmail = (msg.from.match(/<(.+)>/) || [,msg.from])[1]
       const initial = senderName.charAt(0).toUpperCase()
+      const htmlDecoded = msg.html ? decodeQP(msg.html) : null
+      const bodyDecoded = decodeQP(msg.body)
 
       return html`
       <div class="panel msg-panel" id="msg-${i}">
@@ -65,7 +74,7 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
             <div class="toggle-group">
               <button class="toggle-btn active" id="btn-rendered-${i}" onclick="switchView('${i}','rendered')">Rendered</button>
               <button class="toggle-btn" id="btn-raw-${i}" onclick="switchView('${i}','raw')">Raw</button>
-              ${msg.html ? html`<button class="toggle-btn" id="btn-source-${i}" onclick="switchView('${i}','source')">Source</button>` : ''}
+              ${htmlDecoded ? html`<button class="toggle-btn" id="btn-source-${i}" onclick="switchView('${i}','source')">Source</button>` : ''}
             </div>
             <button class="btn-icon" onclick="event.stopPropagation();copyText('msg-source-${i}')" title="Copy content">
               <i data-lucide="copy"></i>
@@ -73,17 +82,17 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
           </div>
           <div class="msg-viewport">
             <div class="msg-view active" id="view-rendered-${i}">
-              ${msg.html
-                ? html`<div class="iframe-wrapper"><iframe data-html="${encodeURIComponent(msg.html || '')}" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" class="msg-iframe" id="iframe-${i}"></iframe></div>`
-                : html`<div class="msg-plain">${escape(msg.body)}</div>`
+              ${htmlDecoded
+                ? html`<div class="iframe-wrapper"><iframe data-html="${encodeURIComponent(htmlDecoded)}" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" class="msg-iframe" id="iframe-${i}"></iframe></div>`
+                : html`<div class="msg-plain">${escape(bodyDecoded)}</div>`
               }
             </div>
             <div class="msg-view" id="view-raw-${i}">
-              <pre class="msg-pre">${escape(msg.body)}</pre>
+              <pre class="msg-pre">${escape(bodyDecoded)}</pre>
             </div>
-            ${msg.html ? html`
+            ${htmlDecoded ? html`
               <div class="msg-view" id="view-source-${i}">
-                <pre class="msg-pre" id="msg-source-${i}">${escape(msg.html)}</pre>
+                <pre class="msg-pre" id="msg-source-${i}">${escape(htmlDecoded)}</pre>
               </div>
             ` : ''}
           </div>
@@ -92,56 +101,74 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
     `})}
 
     <script>
+      function resizeIframe(iframe) {
+        if (!iframe) return;
+        try {
+          const doc = iframe.contentDocument || iframe.contentWindow.document;
+          if (!doc || !doc.body) return;
+          doc.body.style.margin = '0';
+          doc.body.style.padding = '12px';
+          const height = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 250);
+          iframe.style.height = (height + 24) + 'px';
+        } catch(e) {}
+      }
+
       document.querySelectorAll('iframe[data-html]').forEach(iframe => {
-        iframe.srcdoc = decodeURIComponent(iframe.dataset.html)
+        iframe.srcdoc = decodeURIComponent(iframe.dataset.html);
         iframe.onload = () => {
-          try {
-            const doc = iframe.contentDocument || iframe.contentWindow.document
-            const height = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 200)
-            iframe.style.height = Math.min(height + 40, 3000) + 'px'
-          } catch(e) {
-            iframe.style.height = '600px'
-          }
-        }
-      })
+          resizeIframe(iframe);
+          setTimeout(() => resizeIframe(iframe), 300);
+        };
+      });
 
       function toggleMsg(id) {
-        const detail = document.getElementById('detail-' + id)
-        const badge = document.getElementById('badge-' + id)
-        const chevron = document.getElementById('chevron-' + id)
-        const isHidden = detail.classList.toggle('hidden')
-        if (badge) badge.style.display = isHidden ? '' : 'none'
-        if (chevron) chevron.style.transform = isHidden ? '' : 'rotate(180deg)'
-        lucide.createIcons()
+        const detail = document.getElementById('detail-' + id);
+        const badge = document.getElementById('badge-' + id);
+        const chevron = document.getElementById('chevron-' + id);
+        const isHidden = detail.classList.toggle('hidden');
+        if (badge) badge.style.display = isHidden ? '' : 'none';
+        if (chevron) chevron.style.transform = isHidden ? '' : 'rotate(180deg)';
+        if (!isHidden) {
+          const iframe = document.getElementById('iframe-' + id);
+          if (iframe) {
+            setTimeout(() => resizeIframe(iframe), 50);
+            setTimeout(() => resizeIframe(iframe), 300);
+          }
+        }
+        lucide.createIcons();
       }
 
       function switchView(id, mode) {
         ['rendered','raw','source'].forEach(m => {
-          const btn = document.getElementById('btn-'+m+'-'+id)
-          const view = document.getElementById('view-'+m+'-'+id)
-          if (btn) btn.classList.toggle('active', m === mode)
-          if (view) view.classList.toggle('active', m === mode)
-        })
+          const btn = document.getElementById('btn-'+m+'-'+id);
+          const view = document.getElementById('view-'+m+'-'+id);
+          if (btn) btn.classList.toggle('active', m === mode);
+          if (view) view.classList.toggle('active', m === mode);
+        });
+        if (mode === 'rendered') {
+          const iframe = document.getElementById('iframe-' + id);
+          if (iframe) setTimeout(() => resizeIframe(iframe), 50);
+        }
       }
 
       function copyAddress() {
-        navigator.clipboard.writeText('${address}')
-        showToast('Address copied')
+        navigator.clipboard.writeText('${address}');
+        showToast('Address copied');
       }
 
       function copyText(elId) {
-        const el = document.getElementById(elId)
-        if (!el) return
-        navigator.clipboard.writeText(el.textContent || '')
-        showToast('Content copied')
+        const el = document.getElementById(elId);
+        if (!el) return;
+        navigator.clipboard.writeText(el.textContent || '');
+        showToast('Content copied');
       }
 
-      function refresh() { window.location.reload() }
+      function refresh() { window.location.reload(); }
 
       function showToast(msg) {
-        const t = document.getElementById('toast')
-        t.textContent = msg; t.classList.add('show')
-        setTimeout(() => t.classList.remove('show'), 3000)
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
       }
     </script>
     `
@@ -155,3 +182,4 @@ function escape(s: string): string {
 function formatDate(d: string): string {
   try { return new Date(d + 'Z').toLocaleString() } catch { return d }
 }
+
