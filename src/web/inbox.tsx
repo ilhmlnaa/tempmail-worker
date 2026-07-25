@@ -183,6 +183,6 @@ function escape(s: string): string {
 }
 
 function formatDate(d: string): string {
-  try { return new Date(d + 'Z').toLocaleString() } catch { return d }
+  try { return new Date(d + 'Z').toLocaleString() } catch (err) { return d }
 }
 

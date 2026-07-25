@@ -301,7 +301,7 @@ export function SettingsPage({
             input.value = '';
             showToast('Domain @' + val + ' added successfully!');
           }
-        } catch {
+        } catch (err) {
           activeDomains = oldDomains;
           renderDomainTags();
           showToast('Error connecting to server', true);
@@ -327,7 +327,7 @@ export function SettingsPage({
             } else {
               showToast('Domain @' + domain + ' removed successfully!');
             }
-          } catch {
+          } catch (err) {
             activeDomains = oldDomains;
             renderDomainTags();
             showToast('Error connecting to server', true);
