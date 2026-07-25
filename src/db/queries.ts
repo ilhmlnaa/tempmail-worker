@@ -258,3 +258,18 @@ export async function isEmailLinkedToSession(db: D1Database, sid: string, addres
   const r = await db.prepare('SELECT 1 FROM session_emails WHERE session_id = ? AND email_address = ?').bind(sid, address.toLowerCase()).first()
   return !!r
 }
+
+export async function getDomainStats(db: D1Database): Promise<Record<string, number>> {
+  try {
+    const { results } = await db.prepare('SELECT domain, COUNT(*) as count FROM emails GROUP BY domain').all()
+    const stats: Record<string, number> = {}
+    for (const r of results) {
+      if (r.domain) {
+        stats[r.domain as string] = Number(r.count || 0)
+      }
+    }
+    return stats
+  } catch {
+    return {}
+  }
+}
