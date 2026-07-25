@@ -18,6 +18,7 @@ import { requireAuth, setSessionCookie, clearSessionCookie, verifyPassword } fro
 import { getSessionEmails, getAllEmails, linkEmailToSession, createSession } from './db/queries'
 import { LoginPage } from './web/login'
 import { DashboardPage } from './web/dashboard'
+import { DocsPage } from './web/docs'
 import { SettingsPage } from './web/settings'
 import { InboxPage } from './web/inbox'
 import { css } from './web/styles'
@@ -150,6 +151,12 @@ app.get('/settings', async (c) => {
   const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')
   
   return c.html(SettingsPage({ domains: domainsStr, hasAuthSecret: true }))
+})
+
+app.get('/docs', async (c) => {
+  const sid = requireAuth(c)
+  if (typeof sid === 'object') return sid
+  return c.html(DocsPage())
 })
 
 app.get('/inbox/:addr', async (c) => {

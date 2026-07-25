@@ -24,6 +24,9 @@ export function Layout({ title, children, session }: { title: string; children: 
         <a href="/settings" id="nav-settings">
           <i data-lucide="settings"></i> Settings
         </a>
+        <a href="/docs" id="nav-docs">
+          <i data-lucide="book-open"></i> API Docs
+        </a>
       </nav>
       <div class="sidebar-footer">
         <button onclick="logout()">
@@ -46,6 +49,9 @@ export function Layout({ title, children, session }: { title: string; children: 
       if (el) el.classList.add('active');
     } else if(path.startsWith('/settings')) {
       const el = document.getElementById('nav-settings');
+      if (el) el.classList.add('active');
+    } else if(path.startsWith('/docs')) {
+      const el = document.getElementById('nav-docs');
       if (el) el.classList.add('active');
     }
   </script>
