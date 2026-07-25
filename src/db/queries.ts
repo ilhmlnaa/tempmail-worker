@@ -273,3 +273,12 @@ export async function getDomainStats(db: D1Database): Promise<Record<string, num
     return {}
   }
 }
+
+export async function getSessionInboxCount(db: D1Database, sid: string): Promise<number> {
+  try {
+    const r = await db.prepare('SELECT COUNT(*) as count FROM session_emails WHERE session_id = ?').bind(sid).first()
+    return r ? Number(r.count || 0) : 0
+  } catch {
+    return 0
+  }
+}

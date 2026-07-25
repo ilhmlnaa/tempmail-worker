@@ -23,15 +23,17 @@ function randomString(len = 10): string {
 }
 
 api.get('/api/session', async (c) => {
-  const sid = crypto.randomUUID()
+  const reqSid = c.req.header('x-session-id')
+  const sid = reqSid || crypto.randomUUID()
   await createSession(c.env.DB, sid)
-  return c.json({ sessionId: sid, expiresAt: new Date(Date.now() + 600_000).toISOString() })
+  return c.json({ sessionId: sid, expiresAt: new Date(Date.now() + 86400_000).toISOString() })
 })
 
 api.post('/api/session', async (c) => {
-  const sid = crypto.randomUUID()
+  const reqSid = c.req.header('x-session-id')
+  const sid = reqSid || crypto.randomUUID()
   await createSession(c.env.DB, sid)
-  return c.json({ sessionId: sid, expiresAt: new Date(Date.now() + 600_000).toISOString() })
+  return c.json({ sessionId: sid, expiresAt: new Date(Date.now() + 86400_000).toISOString() })
 })
 
 api.post('/api/inboxes', async (c) => {
@@ -43,13 +45,40 @@ api.post('/api/inboxes', async (c) => {
     const token = authHeader.split(' ')[1]
     apiKeyRecord = await getApiKeyByValue(c.env.DB, token)
     if (!apiKeyRecord) return c.json({ error: 'Invalid API Key' }, 401)
-  } else if (!sid || !(await isValidSession(c.env.DB, sid))) {
-    return c.json({ error: 'API Key required' }, 401)
+  } else {
+    if (!sid) {
+      return c.json({ error: 'Session ID or API Key required' }, 401)
+    }
+    await createSession(c.env.DB, sid)
+
+    const publicEnabled = await getSetting(c.env.DB, 'public_tempmail_enabled', 'enabled')
+    if (publicEnabled === 'disabled') {
+      return c.json({ error: 'Public temporary email creation is currently disabled by administrator.' }, 403)
+    }
+
+    const maxPublicInboxes = parseInt(await getSetting(c.env.DB, 'public_max_inboxes_per_session', '5'), 10)
+    if (maxPublicInboxes > 0) {
+      const { getSessionInboxCount } = await import('../db/queries')
+      const count = await getSessionInboxCount(c.env.DB, sid)
+      if (count >= maxPublicInboxes) {
+        return c.json({ error: `Public inbox limit reached (max: ${maxPublicInboxes} per session)` }, 429)
+      }
+    }
   }
 
   const body = (await c.req.json().catch(() => ({}))) as { domain?: string; address?: string }
-  const domains = (await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')).split(',').map(d => d.trim())
-  let domain = (body.domain && domains.includes(body.domain)) ? body.domain : (domains[0] || 'example.com')
+  const domains = (await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')).split(',').map(d => d.trim())
+  let domain = (body.domain && domains.includes(body.domain)) ? body.domain : (domains[0] || 'voidmail.my.id')
+
+  if (!apiKeyRecord) {
+    const publicAllowedDomainsStr = await getSetting(c.env.DB, 'public_allowed_domains', '*')
+    if (publicAllowedDomainsStr !== '*') {
+      const allowedPublicDomains = publicAllowedDomainsStr.split(',').map(d => d.trim()).filter(Boolean)
+      if (!allowedPublicDomains.includes(domain)) {
+        return c.json({ error: `Domain @${domain} is not permitted for public temp mail.` }, 403)
+      }
+    }
+  }
   
   if (apiKeyRecord) {
     if (apiKeyRecord.permittedDomains !== '*') {
@@ -88,7 +117,7 @@ api.post('/api/inboxes', async (c) => {
 
 api.get('/api/inboxes/:addr/messages', async (c) => {
   const addr = decodeURIComponent(c.req.param('addr'))
-  const email = addr.includes('@') ? addr : `${addr}@${(await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')).split(',')[0].trim()}`
+  const email = addr.includes('@') ? addr : `${addr}@${(await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')).split(',')[0].trim()}`
   
   const authHeader = c.req.header('Authorization')
   let allowed = false
