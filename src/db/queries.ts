@@ -165,7 +165,7 @@ export async function getApiKeys(db: D1Database): Promise<ApiKey[]> {
   const { results } = await db.prepare('SELECT * FROM api_keys ORDER BY created_at DESC').all()
   return results.map((r: any) => ({
     id: r.id,
-    keyValue: r.key_value,
+    keyValue: maskApiKey(r.key_value),
     permittedDomains: r.permitted_domains,
     maxInboxes: Number(r.max_inboxes || 0),
     maxMessages: Number(r.max_messages || 0),
@@ -173,8 +173,28 @@ export async function getApiKeys(db: D1Database): Promise<ApiKey[]> {
   }))
 }
 
+export async function hashApiKey(key: string): Promise<string> {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key))
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** Non-secret display form of a stored key: last 6 chars only. */
+export function maskApiKey(stored: string): string {
+  return 'tm_' + '•'.repeat(8) + (stored || '').slice(-6)
+}
+
 export async function getApiKeyByValue(db: D1Database, key: string): Promise<ApiKey | null> {
-  const r = await db.prepare('SELECT * FROM api_keys WHERE key_value = ?').bind(key).first()
+  if (!key) return null
+  const hashed = await hashApiKey(key)
+  // Try hashed match first, then legacy plaintext (lazy-migrate on hit).
+  let r = await db.prepare('SELECT * FROM api_keys WHERE key_value = ?').bind(hashed).first()
+  if (!r) {
+    r = await db.prepare('SELECT * FROM api_keys WHERE key_value = ?').bind(key).first()
+    if (r) {
+      // Lazy migration: upgrade plaintext row to hashed.
+      await db.prepare('UPDATE api_keys SET key_value = ? WHERE id = ?').bind(hashed, r.id).run()
+    }
+  }
   if (!r) return null
   return {
     id: r.id as string,
@@ -212,4 +232,24 @@ export async function getSetting(db: D1Database, key: string, fallback: string):
 export async function updateSetting(db: D1Database, key: string, value: string) {
   await db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?')
     .bind(key, value, value).run()
+}
+
+export async function deleteEmail(db: D1Database, address: string) {
+  // CASCADE deletes messages + session_emails links via FK
+  await db.prepare('DELETE FROM emails WHERE address = ?').bind(address.toLowerCase()).run()
+}
+
+export async function isValidSession(db: D1Database, id: string): Promise<boolean> {
+  const r = await db.prepare('SELECT 1 FROM sessions WHERE id = ?').bind(id).first()
+  return !!r
+}
+
+export async function getEmailRecord(db: D1Database, address: string): Promise<{address: string, api_key_id: string | null} | null> {
+  const r = await db.prepare('SELECT address, api_key_id FROM emails WHERE address = ?').bind(address.toLowerCase()).first()
+  return r as any
+}
+
+export async function isEmailLinkedToSession(db: D1Database, sid: string, address: string): Promise<boolean> {
+  const r = await db.prepare('SELECT 1 FROM session_emails WHERE session_id = ? AND email_address = ?').bind(sid, address.toLowerCase()).first()
+  return !!r
 }

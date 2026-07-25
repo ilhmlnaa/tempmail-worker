@@ -1,13 +1,15 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import type { Env } from '../db/queries'
+import { isValidSession, isEmailLinkedToSession, getEmailRecord, deleteEmail } from '../db/queries'
+import { requireAuth, hashApiKey } from './auth'
 import {
   createEmail, getMessages, emailExists, createSession,
   linkEmailToSession, unlinkEmailFromSession, getAllEmails,
   getApiKeyByValue, getApiKeyInboxCount, getApiKeyMessageCount,
   getApiKeys, createApiKey, deleteApiKey, getSetting, updateSetting
 } from '../db/queries'
-import { requireAuth } from './auth'
+
 
 const api = new Hono<{ Bindings: Env }>()
 
@@ -41,7 +43,7 @@ api.post('/api/inboxes', async (c) => {
     const token = authHeader.split(' ')[1]
     apiKeyRecord = await getApiKeyByValue(c.env.DB, token)
     if (!apiKeyRecord) return c.json({ error: 'Invalid API Key' }, 401)
-  } else if (!sid) {
+  } else if (!sid || !(await isValidSession(c.env.DB, sid))) {
     return c.json({ error: 'API Key required' }, 401)
   }
 
@@ -85,39 +87,64 @@ api.post('/api/inboxes', async (c) => {
 })
 
 api.get('/api/inboxes/:addr/messages', async (c) => {
+  const addr = decodeURIComponent(c.req.param('addr'))
+  const email = addr.includes('@') ? addr : `${addr}@${(await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')).split(',')[0].trim()}`
+  
   const authHeader = c.req.header('Authorization')
+  let allowed = false
+  
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1]
     const apiKeyRecord = await getApiKeyByValue(c.env.DB, token)
     if (!apiKeyRecord) return c.json({ error: 'Invalid API Key' }, 401)
+    
+    const inbox = await getEmailRecord(c.env.DB, email)
+    allowed = !!inbox && inbox.api_key_id === apiKeyRecord.id
+    
     if (apiKeyRecord.maxMessages > 0) {
       const currentMsgCount = await getApiKeyMessageCount(c.env.DB, apiKeyRecord.id)
       if (currentMsgCount >= apiKeyRecord.maxMessages) {
         return c.json({ error: `Message limit reached for this API key (max: ${apiKeyRecord.maxMessages})` }, 429)
       }
     }
+  } else {
+    const sid = c.req.header('x-session-id')
+    allowed = !!sid && await isValidSession(c.env.DB, sid) && await isEmailLinkedToSession(c.env.DB, sid, email)
   }
+  
+  if (!allowed) return c.json({ error: 'Forbidden' }, 403)
 
-  const addr = decodeURIComponent(c.req.param('addr'))
-  const email = addr.includes('@') ? addr : `${addr}@${(await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')).split(',')[0].trim()}`
   const msgs = await getMessages(c.env.DB, email)
   return c.json(msgs)
 })
 
 api.delete('/api/inboxes/:addr', async (c) => {
   const addr = decodeURIComponent(c.req.param('addr'))
+  const auth = c.req.header('Authorization')
+  if (auth?.startsWith('Bearer ')) {
+    const key = await getApiKeyByValue(c.env.DB, auth.slice(7))
+    const inbox = await getEmailRecord(c.env.DB, addr)
+    if (!key || !inbox || inbox.api_key_id !== key.id) return c.json({ error: 'Forbidden' }, 403)
+    await deleteEmail(c.env.DB, addr)
+    return c.json({ ok: true })
+  }
+  const sid = c.req.header('x-session-id')
+  if (!sid || !(await isValidSession(c.env.DB, sid)) || !(await isEmailLinkedToSession(c.env.DB, sid, addr))) {
+    return c.json({ error: 'Forbidden' }, 403)
+  }
+  await unlinkEmailFromSession(c.env.DB, sid, addr)
   return c.json({ ok: true })
 })
 
 api.get('/dashboard/inboxes', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
   const inboxes = await getAllEmails(c.env.DB)
   return c.json(inboxes)
 })
 
 api.post('/dashboard/inboxes', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
   const body = (await c.req.json().catch(() => ({}))) as { local?: string; domain?: string }
@@ -144,7 +171,7 @@ api.post('/dashboard/inboxes', async (c) => {
 })
 
 api.delete('/dashboard/inboxes/:addr', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
   const addr = decodeURIComponent(c.req.param('addr'))
   await unlinkEmailFromSession(c.env.DB, sid, addr)
@@ -152,7 +179,7 @@ api.delete('/dashboard/inboxes/:addr', async (c) => {
 })
 
 api.get('/dashboard/inboxes/:addr/messages', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
   const addr = decodeURIComponent(c.req.param('addr'))
   const msgs = await getMessages(c.env.DB, addr)
@@ -160,14 +187,14 @@ api.get('/dashboard/inboxes/:addr/messages', async (c) => {
 })
 
 api.get('/dashboard/apikeys', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
   const keys = await getApiKeys(c.env.DB)
   return c.json(keys)
 })
 
 api.post('/dashboard/apikeys', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
   
   const body = (await c.req.json().catch(() => ({}))) as { domains?: string; maxInboxes?: number; maxMessages?: number }
@@ -176,19 +203,19 @@ api.post('/dashboard/apikeys', async (c) => {
   const maxMessages = Math.max(0, Number(body.maxMessages || 0))
   const keyStr = 'tm_' + crypto.randomUUID().replace(/-/g, '')
   
-  await createApiKey(c.env.DB, crypto.randomUUID(), keyStr, permitted, maxInboxes, maxMessages)
+  await createApiKey(c.env.DB, crypto.randomUUID(), await hashApiKey(keyStr), permitted, maxInboxes, maxMessages)
   return c.json({ key: keyStr, permittedDomains: permitted, maxInboxes, maxMessages }, 201)
 })
 
 api.delete('/dashboard/apikeys/:id', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
   await deleteApiKey(c.env.DB, c.req.param('id'))
   return c.json({ ok: true })
 })
 
 api.post('/dashboard/settings', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
   
   const body = (await c.req.json().catch(() => ({}))) as { mail_domains?: string; auth_password?: string }

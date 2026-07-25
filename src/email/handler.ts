@@ -11,20 +11,24 @@ function decodeQuotedPrintable(input: string): string {
     .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
 }
 
-function parseEmail(rawText: string): { from: string; subject: string; textBody: string; htmlBody: string | null } {
-  const headers: Record<string, string> = {}
+export function parseEmail(rawText: string): { from: string; subject: string; textBody: string; htmlBody: string | null } {
+  const headers: Record<string, string> = Object.create(null)
   const lines = rawText.split(/\r?\n/)
   let i = 0
 
+  let lastKey = ''
   while (i < lines.length && lines[i] !== '') {
     const line = lines[i]
     if (line.startsWith(' ') || line.startsWith('\t')) {
-      const lastKey = Object.keys(headers).pop()
       if (lastKey) headers[lastKey] += ' ' + line.trim()
     } else {
       const colon = line.indexOf(':')
       if (colon > 0) {
-        headers[line.slice(0, colon).toLowerCase().trim()] = line.slice(colon + 1).trim()
+        const key = line.slice(0, colon).toLowerCase().trim()
+        if (key !== '__proto__' && key !== 'constructor') {
+          lastKey = key
+          headers[key] = line.slice(colon + 1).trim().slice(0, 8192)
+        }
       }
     }
     i++
@@ -43,7 +47,7 @@ function parseEmail(rawText: string): { from: string; subject: string; textBody:
 
     for (const part of parts) {
       if (!part.trim()) continue
-      const partHeaders: Record<string, string> = {}
+      const partHeaders: Record<string, string> = Object.create(null)
       const partLines = part.split(/\r?\n/)
       let j = 0
 
@@ -51,11 +55,12 @@ function parseEmail(rawText: string): { from: string; subject: string; textBody:
         const line = partLines[j]
         if (line.startsWith(' ') || line.startsWith('\t')) {
           const lastKey = Object.keys(partHeaders).pop()
-          if (lastKey) partHeaders[lastKey] += ' ' + line.trim()
+          if (lastKey) partHeaders[lastKey] += ' ' + line.trim().slice(0, 8192)
         } else {
           const colon = line.indexOf(':')
           if (colon > 0) {
-            partHeaders[line.slice(0, colon).toLowerCase().trim()] = line.slice(colon + 1).trim()
+            const key = line.slice(0, colon).toLowerCase().trim()
+            if (key !== '__proto__' && key !== 'constructor') partHeaders[key] = line.slice(colon + 1).trim().slice(0, 8192)
           }
         }
         j++

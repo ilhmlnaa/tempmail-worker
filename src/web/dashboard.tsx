@@ -79,9 +79,7 @@ export function DashboardPage({
             <div class="inbox-info">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
                 <span style="font-family:monospace;font-weight:600;font-size:1.05rem;color:var(--primary)">${k.keyValue}</span>
-                <button type="button" class="btn-icon" onclick="copyKey('${k.keyValue}')" title="Copy Key" style="padding:2px">
-                  <i data-lucide="copy" class="icon-sm"></i>
-                </button>
+
                 <span style="background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.2);padding:2px 8px;border-radius:12px;font-size:0.7rem;font-weight:600">Active</span>
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
@@ -174,6 +172,15 @@ export function DashboardPage({
       ` : ''}
     `})}
 
+        <dialog id="keyModal" class="panel" style="max-width:560px;width:calc(100% - 32px);border:1px solid var(--border);color:var(--text);background:var(--surface)">
+      <h3>API Key Generated</h3>
+      <p style="color:var(--text-dim)">Copy this key now. It will not be shown again.</p>
+      <code id="newKey" style="display:block;overflow-wrap:anywhere;padding:14px;background:var(--bg);margin:16px 0"></code>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn-primary" onclick="copyGeneratedKey()">Copy Key</button>
+        <button class="btn-primary" onclick="location.reload()">Done</button>
+      </div>
+    </dialog>
     <script>
       function showToast(msg) {
         const t = document.getElementById('toast');
@@ -210,6 +217,10 @@ export function DashboardPage({
 
       function copyKey(val) {
         navigator.clipboard.writeText(val);
+        showToast('API Key copied');
+      }
+      function copyGeneratedKey() {
+        navigator.clipboard.writeText(document.getElementById('newKey').textContent || '');
         showToast('API Key copied');
       }
       
@@ -265,8 +276,11 @@ export function DashboardPage({
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ domains, maxInboxes, maxMessages })
           });
-          if (r.ok) location.reload();
-          else showToast('Failed to generate key');
+          if (r.ok) {
+            const data = await r.json();
+            document.getElementById('newKey').textContent = data.key;
+            document.getElementById('keyModal').showModal();
+          } else showToast('Failed to generate key');
         } finally {
           btn.disabled = false; btn.textContent = 'Generate Key';
         }

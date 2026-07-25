@@ -35,11 +35,57 @@ app.get('/styles.css', (c) => {
 // ── Global CORS for API ───────────────────────────────────────
 app.use('/api/*', cors())
 
+app.get('/setup', async (c) => {
+  const { isAppConfigured } = await import('./api/auth')
+  if (await isAppConfigured(c)) return c.redirect('/login')
+  const { SetupPage } = await import('./web/login')
+  return c.html(SetupPage({}))
+})
+
+app.post('/setup', async (c) => {
+  const { isAppConfigured } = await import('./api/auth')
+  if (await isAppConfigured(c)) return c.redirect('/login')
+  
+  const body = await c.req.parseBody()
+  const password = (body as Record<string, string>).password || ''
+  const confirm = (body as Record<string, string>).confirm || ''
+  
+  const { SetupPage } = await import('./web/login')
+  if (!password || password.length < 8 || password !== confirm) {
+    return c.html(SetupPage({ error: 'Password must be at least 8 characters and match.' }))
+  }
+  
+  const { updateSetting, createSession } = await import('./db/queries')
+  await updateSetting(c.env.DB, 'auth_password', password)
+  
+  
+  const sid = crypto.randomUUID()
+  await createSession(c.env.DB, sid)
+  const { setSessionCookie } = await import('./api/auth')
+  setSessionCookie(c, sid)
+  
+  return c.redirect('/dashboard')
+})
+
+app.use('*', async (c, next) => {
+  const path = c.req.path
+  if (!path.startsWith('/api') && !path.startsWith('/auth') && !path.startsWith('/setup') && path !== '/styles.css') {
+    const { isAppConfigured } = await import('./api/auth')
+    if (!(await isAppConfigured(c))) {
+      return c.redirect('/setup')
+    }
+  }
+  await next()
+})
+
+
 // ── Mount API routes ──────────────────────────────────────────
 app.route('/', api)
 
 // ── Auth pages ────────────────────────────────────────────────
-app.get('/login', (c) => {
+app.get('/login', async (c) => {
+  const { isAppConfigured } = await import('./api/auth')
+  if (!(await isAppConfigured(c))) return c.redirect('/setup')
   return c.html(LoginPage({}))
 })
 
@@ -81,7 +127,7 @@ app.post('/auth/logout', (c) => {
 
 // ── Web pages (auth required) ─────────────────────────────────
 app.get('/dashboard/apikeys/:id', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
   try {
@@ -117,7 +163,7 @@ app.get('/dashboard/apikeys/:id', async (c) => {
 })
 
 app.get('/dashboard', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
   try {
@@ -145,7 +191,7 @@ app.get('/dashboard', async (c) => {
 app.get('/', (c) => c.redirect('/dashboard'))
 
 app.get('/settings', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
   
   const { getSetting } = await import('./db/queries')
@@ -155,13 +201,13 @@ app.get('/settings', async (c) => {
 })
 
 app.get('/docs', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
   return c.html(DocsPage())
 })
 
 app.get('/inboxes', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
   try {
@@ -182,7 +228,7 @@ app.get('/inboxes', async (c) => {
 })
 
 app.get('/inbox/:addr', async (c) => {
-  const sid = requireAuth(c)
+  const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
   const addr = decodeURIComponent(c.req.param('addr'))

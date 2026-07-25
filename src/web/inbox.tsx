@@ -83,6 +83,9 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
           <div class="msg-viewport">
             <div class="msg-view active" id="view-rendered-${i}">
               ${htmlDecoded
+                /* Security Note: iframe allows same-origin and popups (for anchor targeting) but DOES NOT allow scripts. 
+                   'allow-same-origin' is required for the resizeIframe function to read the scrollHeight of the inner document dynamically. 
+                   Because scripts are blocked, malicious scripts within the email body cannot exploit same-origin. */
                 ? html`<div class="iframe-wrapper"><iframe data-html="${encodeURIComponent(htmlDecoded)}" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" class="msg-iframe" id="iframe-${i}"></iframe></div>`
                 : html`<div class="msg-plain">${escape(bodyDecoded)}</div>`
               }
