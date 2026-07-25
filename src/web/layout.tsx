@@ -46,8 +46,27 @@ export function Layout({ title, children, session }: { title: string; children: 
   <div class="auth-page">${raw(children)}</div>
   `}
   <div id="toast"></div>
+  <dialog id="confirmModal" class="confirm-modal">
+    <div class="confirm-icon"><i data-lucide="alert-triangle"></i></div>
+    <h3 id="confirmTitle"></h3>
+    <p id="confirmMsg"></p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" onclick="document.getElementById('confirmModal').close()">Cancel</button>
+      <button class="btn-danger" id="confirmBtn"></button>
+    </div>
+  </dialog>
   <script>
     lucide.createIcons();
+    function confirmAction(title, message, btnText, onConfirm) {
+      const m = document.getElementById('confirmModal');
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmMsg').textContent = message;
+      const btn = document.getElementById('confirmBtn');
+      btn.textContent = btnText;
+      btn.onclick = function() { m.close(); onConfirm(); };
+      m.showModal();
+      lucide.createIcons();
+    }
     const path = window.location.pathname;
     if(path.startsWith('/dashboard') || path === '/') {
       const el = document.getElementById('nav-dashboard');

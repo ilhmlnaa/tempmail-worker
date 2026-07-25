@@ -172,13 +172,13 @@ export function DashboardPage({
       ` : ''}
     `})}
 
-        <dialog id="keyModal" class="panel" style="max-width:560px;width:calc(100% - 32px);border:1px solid var(--border);color:var(--text);background:var(--surface)">
-      <h3>API Key Generated</h3>
-      <p style="color:var(--text-dim)">Copy this key now. It will not be shown again.</p>
-      <code id="newKey" style="display:block;overflow-wrap:anywhere;padding:14px;background:var(--bg);margin:16px 0"></code>
+        <dialog id="keyModal" class="confirm-modal" style="text-align:left">
+      <h3 style="display:flex;align-items:center;gap:8px"><i data-lucide="check-circle" style="color:var(--success);width:22px;height:22px"></i> API Key Generated</h3>
+      <p>Copy this key now. It will not be shown again.</p>
+      <code id="newKey" style="display:block;overflow-wrap:anywhere;padding:14px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:24px"></code>
       <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button class="btn-primary" onclick="copyGeneratedKey()">Copy Key</button>
-        <button class="btn-primary" onclick="location.reload()">Done</button>
+        <button class="btn-cancel" onclick="copyGeneratedKey()"><i data-lucide="copy" style="width:16px;height:16px;vertical-align:middle;margin-right:4px"></i> Copy Key</button>
+        <button class="btn-danger" style="background:var(--primary)" onclick="location.reload()">Done</button>
       </div>
     </dialog>
     <script>
@@ -244,15 +244,16 @@ export function DashboardPage({
       }
 
       async function del(addr) {
-        if (!confirm('Delete inbox ' + addr + '?')) return;
-        const r = await fetch('/dashboard/inboxes/' + encodeURIComponent(addr), { method: 'DELETE' });
-        if (r.ok) {
-          const row = document.getElementById('row-' + addr);
-          if (row) row.remove();
-          showToast('Deleted ' + addr);
-        } else {
-          showToast('Failed to delete');
-        }
+        confirmAction('Delete Inbox', 'Are you sure you want to delete ' + addr + '? All messages will be lost.', 'Delete', async function() {
+          const r = await fetch('/dashboard/inboxes/' + encodeURIComponent(addr), { method: 'DELETE' });
+          if (r.ok) {
+            const row = document.getElementById('row-' + addr);
+            if (row) row.remove();
+            showToast('Deleted ' + addr);
+          } else {
+            showToast('Failed to delete');
+          }
+        });
       }
 
       async function createApiKey(e) {
@@ -287,15 +288,16 @@ export function DashboardPage({
       }
 
       async function delKey(id) {
-        if (!confirm('Revoke this API Key?')) return;
-        const r = await fetch('/dashboard/apikeys/' + encodeURIComponent(id), { method: 'DELETE' });
-        if (r.ok) {
-          const row = document.getElementById('keyrow-' + id);
-          if (row) row.remove();
-          showToast('Key revoked');
-        } else {
-          showToast('Failed to revoke');
-        }
+        confirmAction('Revoke API Key', 'Are you sure you want to revoke this API Key? Applications using it will immediately lose access.', 'Revoke Key', async function() {
+          const r = await fetch('/dashboard/apikeys/' + encodeURIComponent(id), { method: 'DELETE' });
+          if (r.ok) {
+            const row = document.getElementById('keyrow-' + id);
+            if (row) row.remove();
+            showToast('Key revoked');
+          } else {
+            showToast('Failed to revoke');
+          }
+        });
       }
 
       async function logout() {

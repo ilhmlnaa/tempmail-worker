@@ -592,5 +592,44 @@ select option {
 .icon-sm { width: 18px; height: 18px; vertical-align: middle; }
 .icon-inline { width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; color: var(--primary); }
 svg.lucide { stroke-width: 2; }
+
+.confirm-modal {
+  background: var(--bg-panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  max-width: 420px;
+  width: calc(100% - 32px);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.confirm-modal::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+.confirm-icon {
+  width: 48px; height: 48px;
+  margin: 0 auto 16px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 50%;
+}
+.confirm-icon svg { width: 24px; height: 24px; color: var(--danger); }
+.confirm-modal h3 { font-size: 1.1rem; margin-bottom: 8px; }
+.confirm-modal p { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 24px; }
+.confirm-actions { display: flex; gap: 12px; justify-content: center; }
+.btn-cancel {
+  padding: 10px 20px; border-radius: var(--radius-sm);
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  font-weight: 500; transition: background 0.2s;
+}
+.btn-cancel:hover { background: var(--bg-hover); }
+.btn-danger {
+  padding: 10px 20px; border-radius: var(--radius-sm);
+  background: var(--danger); color: white; border: none;
+  font-weight: 600; transition: background 0.2s;
+}
+.btn-danger:hover { background: var(--danger-hover); }
 `
 

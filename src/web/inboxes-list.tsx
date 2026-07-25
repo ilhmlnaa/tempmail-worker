@@ -108,15 +108,16 @@ export function InboxesListPage({
       }
 
       async function del(addr) {
-        if (!confirm('Delete inbox ' + addr + '?')) return;
-        const r = await fetch('/dashboard/inboxes/' + encodeURIComponent(addr), { method: 'DELETE' });
-        if (r.ok) {
-          const row = document.getElementById('row-' + addr);
-          if (row) row.remove();
-          showToast('Deleted ' + addr);
-        } else {
-          showToast('Failed to delete');
-        }
+        confirmAction('Delete Inbox', 'Are you sure you want to delete ' + addr + '? All messages will be lost.', 'Delete', async function() {
+          const r = await fetch('/dashboard/inboxes/' + encodeURIComponent(addr), { method: 'DELETE' });
+          if (r.ok) {
+            const row = document.getElementById('row-' + addr);
+            if (row) row.remove();
+            showToast('Deleted ' + addr);
+          } else {
+            showToast('Failed to delete');
+          }
+        });
       }
     </script>
     <style>
