@@ -25,7 +25,7 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
     children: html`
     <div class="dash-header">
       <div>
-        <h2 style="font-family:monospace;display:flex;align-items:center;gap:12px">
+        <h2 style="font-family:monospace;display:flex;align-items:center;gap:12px;word-break:break-all;flex-wrap:wrap">
           <i data-lucide="mail" class="icon-inline"></i> ${address}
         </h2>
         <p>${messages.length} message${messages.length !== 1 ? 's' : ''}</p>

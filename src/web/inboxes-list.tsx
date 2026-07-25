@@ -15,7 +15,7 @@ export function InboxesListPage({
     title: 'Generated Inboxes',
     session: true,
     children: html`
-    <div class="dash-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="dash-header">
       <div>
         <h2><i data-lucide="inbox" class="icon-inline"></i> Inboxes</h2>
         <p>All temporary email inboxes currently active in the system.</p>
@@ -27,7 +27,7 @@ export function InboxesListPage({
       </div>
     </div>
 
-    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-bottom: 24px;">
+    <div class="stats-grid">
       ${StatCard({ label: 'Total Inboxes', value: totalInboxes })}
       ${StatCard({ label: 'Total Messages Received', value: totalMessages })}
     </div>

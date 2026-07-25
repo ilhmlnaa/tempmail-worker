@@ -170,20 +170,21 @@ app.get('/dashboard', async (c) => {
     const limit = 20
     const offset = (page - 1) * limit
 
-    const { getSetting, getApiKeys, getAllEmails } = await import('./db/queries')
+    const { getSetting, getApiKeys, getAllEmails, getDomainStats } = await import('./db/queries')
     const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')
     const domains = domainsStr.split(',').map(d => d.trim()).filter(Boolean)
     
     const { total, totalMessages, emails: inboxes } = await getAllEmails(c.env.DB, limit, offset); 
     const apiKeys = await getApiKeys(c.env.DB)
+    const domainStats = await getDomainStats(c.env.DB)
 
     return c.html(DashboardPage({
       inboxes: inboxes as any[], apiKeys: apiKeys as any[],
-      domains, totalInboxes: total, totalMessages, currentPage: page,
+      domains, domainStats, totalInboxes: total, totalMessages, currentPage: page,
     }))
   } catch (err: any) {
     console.error('[dash] error:', err?.message)
-    return c.html(DashboardPage({ inboxes: [], domains: [], apiKeys: [], totalInboxes: 0, totalMessages: 0, currentPage: 1 }))
+    return c.html(DashboardPage({ inboxes: [], domains: [], apiKeys: [], domainStats: {}, totalInboxes: 0, totalMessages: 0, currentPage: 1 }))
   }
 })
 

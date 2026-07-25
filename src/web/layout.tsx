@@ -1,4 +1,5 @@
 import { html, raw } from 'hono/html'
+import { MobileHeader, SidebarNav } from './components'
 
 export function Layout({ title, children, session }: { title: string; children: any; session?: boolean }) {
   return html`<!DOCTYPE html>
@@ -12,34 +13,13 @@ export function Layout({ title, children, session }: { title: string; children: 
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   ${session ? html`
+  ${MobileHeader()}
   <div class="app-layout">
-    <aside class="sidebar">
-      <div class="sidebar-logo">
-        <i data-lucide="zap" class="icon-md"></i> <span>TempMail</span>
-      </div>
-      <nav class="sidebar-nav">
-        <a href="/dashboard" id="nav-dashboard">
-          <i data-lucide="layout-dashboard"></i> Overview
-        </a>
-        <a href="/inboxes" id="nav-inboxes">
-          <i data-lucide="inbox"></i> Inboxes
-        </a>
-        <a href="/settings" id="nav-settings">
-          <i data-lucide="settings"></i> Settings
-        </a>
-        <a href="/docs" id="nav-docs">
-          <i data-lucide="book-open"></i> API Docs
-        </a>
-      </nav>
-      <div class="sidebar-footer">
-        <button onclick="logout()">
-          <i data-lucide="log-out"></i> Logout
-        </button>
-      </div>
-    </aside>
+    ${SidebarNav()}
     <main class="main">${raw(children)}</main>
   </div>
   ` : html`
@@ -57,6 +37,26 @@ export function Layout({ title, children, session }: { title: string; children: 
   </dialog>
   <script>
     lucide.createIcons();
+    function toggleSidebar(show) {
+      const sidebar = document.getElementById('appSidebar');
+      const backdrop = document.querySelector('.sidebar-backdrop');
+      if (!sidebar) return;
+      if (typeof show === 'boolean') {
+        if (show) {
+          sidebar.classList.add('open');
+          if (backdrop) backdrop.classList.add('show');
+          document.body.style.overflow = 'hidden';
+        } else {
+          sidebar.classList.remove('open');
+          if (backdrop) backdrop.classList.remove('show');
+          document.body.style.overflow = '';
+        }
+      } else {
+        const isOpen = sidebar.classList.toggle('open');
+        if (backdrop) backdrop.classList.toggle('show', isOpen);
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+      }
+    }
     function confirmAction(title, message, btnText, onConfirm) {
       const m = document.getElementById('confirmModal');
       document.getElementById('confirmTitle').textContent = title;
@@ -91,4 +91,3 @@ export function Layout({ title, children, session }: { title: string; children: 
 </body>
 </html>`
 }
-
