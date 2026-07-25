@@ -921,7 +921,7 @@ select option {
 .icon-inline { width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; color: var(--primary); }
 svg.lucide { stroke-width: 2; }
 
-.confirm-modal {
+dialog.confirm-modal {
   background: var(--bg-panel-solid);
   color: var(--text);
   border: 1px solid var(--border);
@@ -930,16 +930,22 @@ svg.lucide { stroke-width: 2; }
   max-width: 420px;
   width: calc(100% - 32px);
   text-align: center;
-  box-shadow: var(--shadow);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
   position: fixed;
-  inset: unset;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   margin: 0;
+  z-index: 10005;
 }
-.confirm-modal::backdrop {
-  background: rgba(0, 0, 0, 0.7);
+dialog.confirm-modal:not([open]) {
+  display: none !important;
+}
+dialog.confirm-modal[open] {
+  display: block !important;
+}
+dialog.confirm-modal::backdrop {
+  background: rgba(0, 0, 0, 0.75);
 }
 .confirm-icon {
   width: 48px; height: 48px;

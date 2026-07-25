@@ -58,15 +58,59 @@ export function Layout({ title, children, session }: { title: string; children: 
         document.body.style.overflow = isOpen ? 'hidden' : '';
       }
     }
+    let _toastTimer = null;
+    function showToast(msg, isError = false) {
+      const t = document.getElementById('toast');
+      if (!t) return;
+      if (_toastTimer) clearTimeout(_toastTimer);
+
+      t.style.border = isError ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)';
+      t.style.boxShadow = isError ? '0 4px 20px rgba(239, 68, 68, 0.25)' : '0 4px 20px rgba(16, 185, 129, 0.25)';
+      const icon = isError ? '<i data-lucide="alert-circle" style="color:#ef4444;width:18px;height:18px;margin-right:8px;vertical-align:middle"></i>' : '<i data-lucide="check-circle" style="color:#10b981;width:18px;height:18px;margin-right:8px;vertical-align:middle"></i>';
+      t.innerHTML = icon + '<span style="vertical-align:middle">' + msg + '</span>';
+      if (window.lucide) lucide.createIcons();
+
+      t.classList.add('show');
+      _toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
     function confirmAction(title, message, btnText, onConfirm) {
       const m = document.getElementById('confirmModal');
-      document.getElementById('confirmTitle').textContent = title;
-      document.getElementById('confirmMsg').textContent = message;
+      if (!m) {
+        if (confirm(message)) onConfirm();
+        return;
+      }
+      
+      const titleEl = document.getElementById('confirmTitle');
+      const msgEl = document.getElementById('confirmMsg');
       const btn = document.getElementById('confirmBtn');
-      btn.textContent = btnText;
-      btn.onclick = function() { m.close(); onConfirm(); };
-      m.showModal();
-      lucide.createIcons();
+      
+      if (titleEl) titleEl.textContent = title;
+      if (msgEl) msgEl.textContent = message;
+      if (btn) {
+        btn.textContent = btnText;
+        btn.onclick = function() {
+          try { m.close(); } catch(e) {}
+          m.removeAttribute('open');
+          onConfirm();
+        };
+      }
+      
+      try {
+        if (m.open) m.close();
+      } catch(e) {}
+
+      try {
+        if (typeof m.showModal === 'function') {
+          m.showModal();
+        } else {
+          m.setAttribute('open', '');
+        }
+      } catch (err) {
+        m.setAttribute('open', '');
+      }
+
+      if (window.lucide) lucide.createIcons();
     }
     async function logout() {
       confirmAction('Logout', 'Are you sure you want to log out of your session?', 'Logout', async function() {
