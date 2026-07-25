@@ -7,7 +7,7 @@ export function LoginPage({ error }: { error?: string }) {
     children: html`
     <div class="auth-card">
       <h1 style="display:flex;align-items:center;justify-content:center;gap:12px;">
-        <i data-lucide="shield-zap" style="width:32px;height:32px;color:var(--primary)"></i> 
+        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img-lg" /> 
         <span>Void<span style="color:var(--primary)">Mail</span></span>
       </h1>
       <p>Enter your admin password to access the portal</p>
@@ -36,7 +36,7 @@ export function SetupPage({ error }: { error?: string }) {
     children: html`
     <div class="auth-card">
       <h1 style="display:flex;align-items:center;justify-content:center;gap:12px;">
-        <i data-lucide="shield-check" style="width:32px;height:32px;color:var(--primary)"></i> First Run Setup
+        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img-lg" /> <span>First Run Setup</span>
       </h1>
       <p>Set a strong admin password to secure your VoidMail portal.</p>
       <form method="post" action="/setup">

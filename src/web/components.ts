@@ -28,7 +28,7 @@ export function MobileHeader() {
   return html`
     <div class="mobile-header">
       <div class="mobile-logo">
-        <i data-lucide="shield-zap" class="icon-md" style="color:var(--primary)"></i> 
+        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" /> 
         <span>Void<span style="color:var(--primary)">Mail</span></span>
       </div>
       <button class="mobile-menu-btn" onclick="toggleSidebar(true)" aria-label="Open Menu">
@@ -44,7 +44,7 @@ export function SidebarNav() {
     <aside class="sidebar" id="appSidebar">
       <div class="sidebar-logo">
         <div style="display:flex;align-items:center;gap:10px">
-          <i data-lucide="shield-zap" class="icon-md" style="color:var(--primary)"></i> 
+          <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" /> 
           <span>Void<span style="color:var(--primary)">Mail</span></span>
         </div>
         <button class="mobile-close-btn" onclick="toggleSidebar(false)" aria-label="Close Menu">
