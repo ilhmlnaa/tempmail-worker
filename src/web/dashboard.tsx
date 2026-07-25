@@ -54,6 +54,17 @@ export function DashboardPage({
           `)}
         </div>
         
+        <div style="display:flex;gap:16px;">
+          <div style="flex:1">
+            <label style="font-size:0.85rem;color:var(--text-dim);display:block;margin-bottom:6px">Max Inboxes (0 = Unlimited)</label>
+            <input type="number" id="maxInboxes" placeholder="0" min="0" value="0" style="width:100%" />
+          </div>
+          <div style="flex:1">
+            <label style="font-size:0.85rem;color:var(--text-dim);display:block;margin-bottom:6px">Max Messages (0 = Unlimited)</label>
+            <input type="number" id="maxMessages" placeholder="0" min="0" value="0" style="width:100%" />
+          </div>
+        </div>
+
         <div>
           <button type="submit" class="btn-primary" id="btnCreateKey">Generate Key</button>
         </div>
@@ -70,7 +81,12 @@ export function DashboardPage({
                   <i data-lucide="copy" class="icon-sm"></i>
                 </button>
               </h4>
-              <p>Domains: <span style="color:#fff">${k.permittedDomains}</span> &nbsp;&bull;&nbsp; Created: ${new Date(k.createdAt).toLocaleDateString()}</p>
+              <p>
+                Domains: <span style="color:#fff">${k.permittedDomains}</span> &nbsp;&bull;&nbsp;
+                Inboxes: <span style="color:#fff">${k.maxInboxes > 0 ? k.maxInboxes : 'Unlimited'}</span> &nbsp;&bull;&nbsp;
+                Messages: <span style="color:#fff">${k.maxMessages > 0 ? k.maxMessages : 'Unlimited'}</span> &nbsp;&bull;&nbsp;
+                Created: ${new Date(k.createdAt).toLocaleDateString()}
+              </p>
             </div>
             <div class="actions">
               <a href="/dashboard/apikeys/${k.id}" class="btn-icon" title="View Generated Inboxes"><i data-lucide="eye"></i></a>
@@ -201,11 +217,14 @@ export function DashboardPage({
           if (checked.length > 0) domains = checked.join(',');
         }
 
+        const maxInboxes = parseInt(document.getElementById('maxInboxes').value || '0', 10);
+        const maxMessages = parseInt(document.getElementById('maxMessages').value || '0', 10);
+
         try {
           const r = await fetch('/dashboard/apikeys', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ domains })
+            body: JSON.stringify({ domains, maxInboxes, maxMessages })
           });
           if (r.ok) location.reload();
           else showToast('Failed to generate key');

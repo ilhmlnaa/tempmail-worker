@@ -4,13 +4,12 @@ import type { Env } from '../db/queries'
 import {
   createEmail, getMessages, emailExists, createSession,
   linkEmailToSession, unlinkEmailFromSession, getAllEmails,
-  getApiKeyByValue
+  getApiKeyByValue, getApiKeyInboxCount, getApiKeyMessageCount,
+  getApiKeys, createApiKey, deleteApiKey, getSetting, updateSetting
 } from '../db/queries'
 import { requireAuth } from './auth'
 
 const api = new Hono<{ Bindings: Env }>()
-
-// ── Helpers ──────────────────────────────────────────────────
 
 function getDomains(env: Env): string[] {
   return (env.MAIL_DOMAINS || '').split(',').map(d => d.trim()).filter(Boolean)
@@ -20,10 +19,6 @@ function randomString(len = 10): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
   return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
-
-// ════════════════════════════════════════════════════════════
-//  PUBLIC — MAILLDEZ compatible (for grok-signup.py)
-// ════════════════════════════════════════════════════════════
 
 api.get('/api/session', async (c) => {
   const sid = crypto.randomUUID()
@@ -38,7 +33,6 @@ api.post('/api/session', async (c) => {
 })
 
 api.post('/api/inboxes', async (c) => {
-  // Check Session (Dashboard Admin) or API Key
   const sid = c.req.header('x-session-id')
   const authHeader = c.req.header('Authorization')
   let apiKeyRecord = null
@@ -48,7 +42,6 @@ api.post('/api/inboxes', async (c) => {
     apiKeyRecord = await getApiKeyByValue(c.env.DB, token)
     if (!apiKeyRecord) return c.json({ error: 'Invalid API Key' }, 401)
   } else if (!sid) {
-    // Wajib ada API Key atau x-session-id
     return c.json({ error: 'API Key required' }, 401)
   }
 
@@ -56,11 +49,19 @@ api.post('/api/inboxes', async (c) => {
   const domains = (await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')).split(',').map(d => d.trim())
   let domain = (body.domain && domains.includes(body.domain)) ? body.domain : (domains[0] || 'example.com')
   
-  if (apiKeyRecord && apiKeyRecord.permittedDomains !== '*') {
-    const allowed = apiKeyRecord.permittedDomains.split(',').map(d => d.trim())
-    if (!allowed.includes(domain)) {
-      if (allowed.length > 0) domain = allowed[0]
-      else return c.json({ error: 'API key has no valid domain permissions' }, 403)
+  if (apiKeyRecord) {
+    if (apiKeyRecord.permittedDomains !== '*') {
+      const allowed = apiKeyRecord.permittedDomains.split(',').map(d => d.trim())
+      if (!allowed.includes(domain)) {
+        if (allowed.length > 0) domain = allowed[0]
+        else return c.json({ error: 'API key has no valid domain permissions' }, 403)
+      }
+    }
+    if (apiKeyRecord.maxInboxes > 0) {
+      const currentInboxCount = await getApiKeyInboxCount(c.env.DB, apiKeyRecord.id)
+      if (currentInboxCount >= apiKeyRecord.maxInboxes) {
+        return c.json({ error: `Inbox limit reached for this API key (max: ${apiKeyRecord.maxInboxes})` }, 429)
+      }
     }
   }
 
@@ -84,6 +85,19 @@ api.post('/api/inboxes', async (c) => {
 })
 
 api.get('/api/inboxes/:addr/messages', async (c) => {
+  const authHeader = c.req.header('Authorization')
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1]
+    const apiKeyRecord = await getApiKeyByValue(c.env.DB, token)
+    if (!apiKeyRecord) return c.json({ error: 'Invalid API Key' }, 401)
+    if (apiKeyRecord.maxMessages > 0) {
+      const currentMsgCount = await getApiKeyMessageCount(c.env.DB, apiKeyRecord.id)
+      if (currentMsgCount >= apiKeyRecord.maxMessages) {
+        return c.json({ error: `Message limit reached for this API key (max: ${apiKeyRecord.maxMessages})` }, 429)
+      }
+    }
+  }
+
   const addr = decodeURIComponent(c.req.param('addr'))
   const email = addr.includes('@') ? addr : `${addr}@${(await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')).split(',')[0].trim()}`
   const msgs = await getMessages(c.env.DB, email)
@@ -145,10 +159,6 @@ api.get('/dashboard/inboxes/:addr/messages', async (c) => {
   return c.json(msgs)
 })
 
-export default api
-
-import { getApiKeys, createApiKey, deleteApiKey } from '../db/queries'
-
 api.get('/dashboard/apikeys', async (c) => {
   const sid = requireAuth(c)
   if (typeof sid === 'object') return sid
@@ -160,12 +170,14 @@ api.post('/dashboard/apikeys', async (c) => {
   const sid = requireAuth(c)
   if (typeof sid === 'object') return sid
   
-  const body = (await c.req.json().catch(() => ({}))) as { domains?: string }
+  const body = (await c.req.json().catch(() => ({}))) as { domains?: string; maxInboxes?: number; maxMessages?: number }
   const permitted = body.domains && body.domains.trim() ? body.domains.trim() : '*'
+  const maxInboxes = Math.max(0, Number(body.maxInboxes || 0))
+  const maxMessages = Math.max(0, Number(body.maxMessages || 0))
   const keyStr = 'tm_' + crypto.randomUUID().replace(/-/g, '')
   
-  await createApiKey(c.env.DB, crypto.randomUUID(), keyStr, permitted)
-  return c.json({ key: keyStr, permittedDomains: permitted }, 201)
+  await createApiKey(c.env.DB, crypto.randomUUID(), keyStr, permitted, maxInboxes, maxMessages)
+  return c.json({ key: keyStr, permittedDomains: permitted, maxInboxes, maxMessages }, 201)
 })
 
 api.delete('/dashboard/apikeys/:id', async (c) => {
@@ -174,7 +186,6 @@ api.delete('/dashboard/apikeys/:id', async (c) => {
   await deleteApiKey(c.env.DB, c.req.param('id'))
   return c.json({ ok: true })
 })
-import { getSetting, updateSetting } from '../db/queries'
 
 api.post('/dashboard/settings', async (c) => {
   const sid = requireAuth(c)
@@ -191,3 +202,6 @@ api.post('/dashboard/settings', async (c) => {
   
   return c.json({ ok: true })
 })
+
+export default api
+

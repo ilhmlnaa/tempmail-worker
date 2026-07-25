@@ -137,13 +137,28 @@ export interface ApiKey {
   id: string;
   keyValue: string;
   permittedDomains: string;
+  maxInboxes: number;
+  maxMessages: number;
   createdAt: string;
 }
 
-export async function createApiKey(db: D1Database, id: string, keyValue: string, permittedDomains: string) {
-  await db.prepare('INSERT INTO api_keys (id, key_value, permitted_domains) VALUES (?, ?, ?)')
-    .bind(id, keyValue, permittedDomains)
-    .run()
+export async function createApiKey(
+  db: D1Database, 
+  id: string, 
+  keyValue: string, 
+  permittedDomains: string,
+  maxInboxes: number = 0,
+  maxMessages: number = 0
+) {
+  try {
+    await db.prepare('INSERT INTO api_keys (id, key_value, permitted_domains, max_inboxes, max_messages) VALUES (?, ?, ?, ?, ?)')
+      .bind(id, keyValue, permittedDomains, maxInboxes, maxMessages)
+      .run()
+  } catch {
+    await db.prepare('INSERT INTO api_keys (id, key_value, permitted_domains) VALUES (?, ?, ?)')
+      .bind(id, keyValue, permittedDomains)
+      .run()
+  }
 }
 
 export async function getApiKeys(db: D1Database): Promise<ApiKey[]> {
@@ -152,6 +167,8 @@ export async function getApiKeys(db: D1Database): Promise<ApiKey[]> {
     id: r.id,
     keyValue: r.key_value,
     permittedDomains: r.permitted_domains,
+    maxInboxes: Number(r.max_inboxes || 0),
+    maxMessages: Number(r.max_messages || 0),
     createdAt: r.created_at
   }))
 }
@@ -163,8 +180,22 @@ export async function getApiKeyByValue(db: D1Database, key: string): Promise<Api
     id: r.id as string,
     keyValue: r.key_value as string,
     permittedDomains: r.permitted_domains as string,
+    maxInboxes: Number(r.max_inboxes || 0),
+    maxMessages: Number(r.max_messages || 0),
     createdAt: r.created_at as string
   }
+}
+
+export async function getApiKeyInboxCount(db: D1Database, apiKeyId: string): Promise<number> {
+  const r = await db.prepare('SELECT COUNT(*) as total FROM emails WHERE api_key_id = ?').bind(apiKeyId).first()
+  return r ? Number(r.total || 0) : 0
+}
+
+export async function getApiKeyMessageCount(db: D1Database, apiKeyId: string): Promise<number> {
+  const r = await db.prepare(
+    'SELECT COUNT(m.id) as total FROM messages m JOIN emails e ON m.email_address = e.address WHERE e.api_key_id = ?'
+  ).bind(apiKeyId).first()
+  return r ? Number(r.total || 0) : 0
 }
 
 export async function deleteApiKey(db: D1Database, id: string) {

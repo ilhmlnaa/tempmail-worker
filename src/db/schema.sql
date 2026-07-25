@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS api_keys (
   id TEXT PRIMARY KEY,
   key_value TEXT NOT NULL UNIQUE,
   permitted_domains TEXT NOT NULL,
+  max_inboxes INTEGER NOT NULL DEFAULT 0,
+  max_messages INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -43,3 +45,4 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL
 );
 ALTER TABLE emails ADD COLUMN api_key_id TEXT REFERENCES api_keys(id) ON DELETE SET NULL;
+
