@@ -23,6 +23,7 @@ import { DocsPage } from './web/docs'
 import { SettingsPage } from './web/settings'
 import { InboxPage } from './web/inbox'
 import { css } from './web/styles'
+import { logoBytes } from './web/logoData'
 import type { Env } from './db/queries'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -30,6 +31,15 @@ const app = new Hono<{ Bindings: Env }>()
 // ── Static assets ─────────────────────────────────────────────
 app.get('/styles.css', (c) => {
   return c.text(css, 200, { 'Content-Type': 'text/css; charset=utf-8' })
+})
+
+app.get('/logo.png', (c) => {
+  return new Response(logoBytes, {
+    headers: {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=86400',
+    },
+  })
 })
 
 // ── Global CORS for API ───────────────────────────────────────
