@@ -27,15 +27,17 @@ export function Layout({ title, children, session }: { title: string; children: 
   <div class="auth-page">${raw(children)}</div>
   `}
   <div id="toast"></div>
-  <dialog id="confirmModal" class="confirm-modal">
-    <div class="confirm-icon"><i data-lucide="alert-triangle"></i></div>
-    <h3 id="confirmTitle"></h3>
-    <p id="confirmMsg"></p>
-    <div class="confirm-actions">
-      <button class="btn-cancel" onclick="document.getElementById('confirmModal').close()">Cancel</button>
-      <button class="btn-danger" id="confirmBtn"></button>
+  <div id="confirmModal" class="confirm-modal-overlay" onclick="if(event.target===this)closeConfirmModal()">
+    <div class="confirm-modal-card">
+      <div class="confirm-icon"><i data-lucide="alert-triangle"></i></div>
+      <h3 id="confirmTitle">Confirm Action</h3>
+      <p id="confirmMsg">Are you sure?</p>
+      <div class="confirm-actions">
+        <button type="button" class="btn-cancel" onclick="closeConfirmModal()">Cancel</button>
+        <button type="button" class="btn-danger" id="confirmBtn">Confirm</button>
+      </div>
     </div>
-  </dialog>
+  </div>
   <script>
     lucide.createIcons();
     function toggleSidebar(show) {
@@ -74,6 +76,11 @@ export function Layout({ title, children, session }: { title: string; children: 
       _toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
     }
 
+    function closeConfirmModal() {
+      const m = document.getElementById('confirmModal');
+      if (m) m.classList.remove('show');
+    }
+
     function confirmAction(title, message, btnText, onConfirm) {
       const m = document.getElementById('confirmModal');
       if (!m) {
@@ -90,26 +97,12 @@ export function Layout({ title, children, session }: { title: string; children: 
       if (btn) {
         btn.textContent = btnText;
         btn.onclick = function() {
-          try { m.close(); } catch(e) {}
-          m.removeAttribute('open');
+          closeConfirmModal();
           onConfirm();
         };
       }
-      
-      try {
-        if (m.open) m.close();
-      } catch(e) {}
 
-      try {
-        if (typeof m.showModal === 'function') {
-          m.showModal();
-        } else {
-          m.setAttribute('open', '');
-        }
-      } catch (err) {
-        m.setAttribute('open', '');
-      }
-
+      m.classList.add('show');
       if (window.lucide) lucide.createIcons();
     }
     async function logout() {

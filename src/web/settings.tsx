@@ -117,7 +117,7 @@ export function SettingsPage({
           ${initialDomains.map(d => html`
             <div class="domain-tag-item" data-domain="${d}">
               <span>${d}</span>
-              <button type="button" onclick="removeDomain('${d}')" title="Remove domain">&times;</button>
+              <button type="button" onclick="event.preventDefault();event.stopPropagation();removeDomain('${d}')" title="Remove domain">&times;</button>
             </div>
           `)}
         </div>
@@ -260,7 +260,7 @@ export function SettingsPage({
             container.innerHTML = activeDomains.map(d => 
               '<div class="domain-tag-item" data-domain="' + d + '">' +
                 '<span>' + d + '</span>' +
-                '<button type="button" onclick="removeDomain(\'' + d + '\')" title="Remove domain">&times;</button>' +
+                '<button type="button" onclick="event.preventDefault();event.stopPropagation();removeDomain(\'' + d + '\')" title="Remove domain">&times;</button>' +
               '</div>'
             ).join('');
           }

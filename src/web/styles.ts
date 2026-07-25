@@ -921,31 +921,38 @@ select option {
 .icon-inline { width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; color: var(--primary); }
 svg.lucide { stroke-width: 2; }
 
-dialog.confirm-modal {
+.confirm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  padding: 16px;
+}
+.confirm-modal-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+.confirm-modal-card {
   background: var(--bg-panel-solid);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 32px;
   max-width: 420px;
-  width: calc(100% - 32px);
+  width: 100%;
   text-align: center;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  margin: 0;
-  z-index: 10005;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+  transform: scale(0.92);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-dialog.confirm-modal:not([open]) {
-  display: none !important;
-}
-dialog.confirm-modal[open] {
-  display: block !important;
-}
-dialog.confirm-modal::backdrop {
-  background: rgba(0, 0, 0, 0.75);
+.confirm-modal-overlay.show .confirm-modal-card {
+  transform: scale(1);
 }
 .confirm-icon {
   width: 48px; height: 48px;
