@@ -7,7 +7,7 @@ export function Layout({ title, children, session }: { title: string; children: 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${title} — TempMail</title>
+  <title>${title} — VoidMail</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -15,7 +15,7 @@ export function Layout({ title, children, session }: { title: string; children: 
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+<body class="${session ? 'admin-body' : ''}">
   ${session ? html`
   ${MobileHeader()}
   <div class="app-layout">
@@ -74,16 +74,16 @@ export function Layout({ title, children, session }: { title: string; children: 
       });
     }
     const path = window.location.pathname;
-    if(path.startsWith('/dashboard') || path === '/') {
+    if(path === '/admin' || path === '/admin/dashboard') {
       const el = document.getElementById('nav-dashboard');
       if (el) el.classList.add('active');
-    } else if(path.startsWith('/inboxes')) {
+    } else if(path.startsWith('/admin/inboxes')) {
       const el = document.getElementById('nav-inboxes');
       if (el) el.classList.add('active');
-    } else if(path.startsWith('/settings')) {
+    } else if(path.startsWith('/admin/settings')) {
       const el = document.getElementById('nav-settings');
       if (el) el.classList.add('active');
-    } else if(path.startsWith('/docs')) {
+    } else if(path.startsWith('/admin/docs')) {
       const el = document.getElementById('nav-docs');
       if (el) el.classList.add('active');
     }

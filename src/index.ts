@@ -1,13 +1,12 @@
 /**
- * TempMail Worker — MAILLDEZ-compatible + Web Dashboard
+ * VoidMail Worker — MAILLDEZ-compatible + Web Dashboard + Public Landing Page
  * 
  * Routes:
- *   /api/*          → MAILLDEZ API + Dashboard API
- *   /auth/*         → Auth endpoints
- *   /               → Dashboard (auth required)
- *   /login          → Login page
- *   /inbox/:addr    → Inbox viewer
- *   email()         → Inbound email handler
+ *   /               → Public SaaS Landing Page (Instant Temp Mail Generator)
+ *   /admin/*        → Admin Portal (Dashboard, Inboxes, Settings, API Docs)
+ *   /api/*          → Public & Developer REST API
+ *   /auth/*         → Admin Authentication
+ *   email()         → Cloudflare Email Routing Inbound Handler
  */
 
 import { Hono } from 'hono'
@@ -15,8 +14,9 @@ import { cors } from 'hono/cors'
 import api from './api/routes'
 import { handleEmail } from './email/handler'
 import { requireAuth, setSessionCookie, clearSessionCookie, verifyPassword } from './api/auth'
-import { getSessionEmails, getAllEmails, linkEmailToSession, createSession } from './db/queries'
+import { getSessionEmails, getAllEmails, linkEmailToSession, createSession, getSetting, getDomainStats } from './db/queries'
 import { LoginPage } from './web/login'
+import { LandingPage } from './web/landing'
 import { DashboardPage } from './web/dashboard'
 import { InboxesListPage } from './web/inboxes-list'
 import { DocsPage } from './web/docs'
@@ -60,15 +60,14 @@ app.post('/setup', async (c) => {
   
   const sid = crypto.randomUUID()
   await createSession(c.env.DB, sid, true)
-  const { setSessionCookie } = await import('./api/auth')
   setSessionCookie(c, sid)
   
-  return c.redirect('/dashboard')
+  return c.redirect('/admin')
 })
 
 app.use('*', async (c, next) => {
   const path = c.req.path
-  if (!path.startsWith('/api') && !path.startsWith('/auth') && !path.startsWith('/setup') && path !== '/styles.css') {
+  if (path.startsWith('/admin')) {
     const { isAppConfigured } = await import('./api/auth')
     if (!(await isAppConfigured(c))) {
       return c.redirect('/setup')
@@ -77,9 +76,21 @@ app.use('*', async (c, next) => {
   await next()
 })
 
-
 // ── Mount API routes ──────────────────────────────────────────
 app.route('/', api)
+
+// ── Public SaaS Landing Page ──────────────────────────────────
+app.get('/', async (c) => {
+  const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')
+  let domains = domainsStr.split(',').map(d => d.trim()).filter(Boolean)
+  const publicAllowedDomainsStr = await getSetting(c.env.DB, 'public_allowed_domains', '*')
+  if (publicAllowedDomainsStr !== '*') {
+    const allowed = publicAllowedDomainsStr.split(',').map(d => d.trim()).filter(Boolean)
+    domains = domains.filter(d => allowed.includes(d))
+    if (domains.length === 0 && domainsStr) domains = [domainsStr.split(',')[0].trim()]
+  }
+  return c.html(LandingPage({ domains }))
+})
 
 // ── Auth pages ────────────────────────────────────────────────
 app.get('/login', async (c) => {
@@ -112,11 +123,10 @@ app.post('/auth/login', async (c) => {
   await createSession(c.env.DB, sid, true)
   setSessionCookie(c, sid)
   
-  // If JSON (AJAX), return success; if form, redirect
   if (contentType.includes('application/json')) {
-    return c.json({ ok: true })
+    return c.json({ ok: true, redirect: '/admin' })
   }
-  return c.redirect('/')
+  return c.redirect('/admin')
 })
 
 app.post('/auth/logout', (c) => {
@@ -124,8 +134,11 @@ app.post('/auth/logout', (c) => {
   return c.redirect('/login')
 })
 
-// ── Web pages (auth required) ─────────────────────────────────
-app.get('/dashboard/apikeys/:id', async (c) => {
+// ── Legacy Redirects ─────────────────────────────────────────
+app.get('/dashboard', (c) => c.redirect('/admin'))
+
+// ── Admin Portal Web Pages (auth required) ───────────────────
+app.get('/admin/apikeys/:id', async (c) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
@@ -141,7 +154,7 @@ app.get('/dashboard/apikeys/:id', async (c) => {
     
     if (!keyInfo) return c.text('API Key not found', 404)
 
-    const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')
+    const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')
     const domains = domainsStr.split(',').map(d => d.trim()).filter(Boolean)
     
     const { total, totalMessages, emails: inboxes } = await getEmailsByApiKey(c.env.DB, apiKeyId, limit, offset)
@@ -161,7 +174,7 @@ app.get('/dashboard/apikeys/:id', async (c) => {
   }
 })
 
-app.get('/dashboard', async (c) => {
+app.get('/admin', async (c) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
@@ -171,7 +184,7 @@ app.get('/dashboard', async (c) => {
     const offset = (page - 1) * limit
 
     const { getSetting, getApiKeys, getAllEmails, getDomainStats } = await import('./db/queries')
-    const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')
+    const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')
     const domains = domainsStr.split(',').map(d => d.trim()).filter(Boolean)
     
     const { total, totalMessages, emails: inboxes } = await getAllEmails(c.env.DB, limit, offset); 
@@ -183,30 +196,36 @@ app.get('/dashboard', async (c) => {
       domains, domainStats, totalInboxes: total, totalMessages, currentPage: page,
     }))
   } catch (err: any) {
-    console.error('[dash] error:', err?.message)
+    console.error('[admin] error:', err?.message)
     return c.html(DashboardPage({ inboxes: [], domains: [], apiKeys: [], domainStats: {}, totalInboxes: 0, totalMessages: 0, currentPage: 1 }))
   }
 })
 
-app.get('/', (c) => c.redirect('/dashboard'))
+app.get('/admin/dashboard', (c) => c.redirect('/admin'))
 
-app.get('/settings', async (c) => {
+app.get('/admin/settings', async (c) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
   
   const { getSetting } = await import('./db/queries')
-  const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')
+  const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')
+  const publicEnabled = await getSetting(c.env.DB, 'public_tempmail_enabled', 'enabled')
+  const publicMaxInboxes = parseInt(await getSetting(c.env.DB, 'public_max_inboxes_per_session', '5'), 10)
+  const publicAllowedDomains = await getSetting(c.env.DB, 'public_allowed_domains', '*')
   
-  return c.html(SettingsPage({ domains: domainsStr, hasAuthSecret: true }))
+  return c.html(SettingsPage({ 
+    domains: domainsStr, 
+    hasAuthSecret: true,
+    publicEnabled,
+    publicMaxInboxes,
+    publicAllowedDomains
+  }))
 })
 
-app.get('/docs', async (c) => {
-  const sid = await requireAuth(c)
-  if (typeof sid === 'object') return sid
-  return c.html(DocsPage())
-})
+app.get('/docs', (c) => c.html(DocsPage({ session: false })))
+app.get('/admin/docs', (c) => c.html(DocsPage({ session: true })))
 
-app.get('/inboxes', async (c) => {
+app.get('/admin/inboxes', async (c) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
@@ -227,13 +246,12 @@ app.get('/inboxes', async (c) => {
   }
 })
 
-app.get('/inbox/:addr', async (c) => {
+app.get('/admin/inbox/:addr', async (c) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
   const addr = decodeURIComponent(c.req.param('addr'))
 
-  // Fetch messages via the queries module
   const { getMessages } = await import('./db/queries')
   const msgs = await getMessages(c.env.DB, addr)
 

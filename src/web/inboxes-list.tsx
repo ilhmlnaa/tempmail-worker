@@ -9,7 +9,7 @@ export function InboxesListPage({
   inboxes: Inbox[]; totalInboxes: number; totalMessages: number; currentPage: number 
 }) {
   const totalPages = Math.ceil(totalInboxes / 20) || 1
-  const baseUrl = '/inboxes'
+  const baseUrl = '/admin/inboxes'
 
   return Layout({
     title: 'Generated Inboxes',
@@ -39,13 +39,13 @@ export function InboxesListPage({
           ${inboxes.map(i => html`
             <div class="inbox-item" id="row-${i.address}">
               <div class="inbox-info">
-                <h4><a href="/inbox/${encodeURIComponent(i.address)}">${i.address}</a></h4>
+                <h4><a href="/admin/inbox/${encodeURIComponent(i.address)}">${i.address}</a></h4>
                 <p>Created: ${new Date(i.createdAt).toLocaleString()}</p>
               </div>
               <div class="inbox-meta">
                 <span class="badge">${i.messageCount || 0} msgs</span>
                 <div class="actions">
-                  <a href="/inbox/${encodeURIComponent(i.address)}" class="btn-icon" title="View Inbox"><i data-lucide="eye"></i></a>
+                  <a href="/admin/inbox/${encodeURIComponent(i.address)}" class="btn-icon" title="View Inbox"><i data-lucide="eye"></i></a>
                   ${IconButton({ icon: 'trash-2', onclick: `del('${i.address}')`, title: 'Delete', variant: 'danger' })}
                 </div>
               </div>

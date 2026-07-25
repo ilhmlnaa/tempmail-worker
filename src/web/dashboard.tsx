@@ -53,6 +53,18 @@ export function DashboardPage({
     ` : ''}
 
     ${!apiKeyFilter ? Panel({ title: 'API Keys & Permissions', icon: 'key', children: html`
+      <div class="api-key-box" style="background:rgba(15,23,42,0.6);margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em">API Base Endpoint URL</div>
+            <div style="font-family:monospace;font-size:1rem;color:#38bdf8;font-weight:600;margin-top:4px" id="apiBaseUrlDisplay">loading...</div>
+          </div>
+          <button type="button" class="btn-primary" onclick="copyApiBaseUrl()" style="padding:7px 16px;font-size:0.85rem">
+            <i data-lucide="copy" class="icon-sm"></i> Copy API Base URL
+          </button>
+        </div>
+      </div>
+
       <form class="api-key-box" onsubmit="createApiKey(event)">
         <div class="api-key-form-controls">
           <div class="segmented-control">
@@ -109,7 +121,7 @@ export function DashboardPage({
               </div>
             </div>
             <div class="actions">
-              <a href="/dashboard/apikeys/${k.id}" class="btn-icon" title="View Generated Inboxes"><i data-lucide="eye"></i></a>
+              <a href="/admin/apikeys/${k.id}" class="btn-icon" title="View Generated Inboxes"><i data-lucide="eye"></i></a>
               ${IconButton({ icon: 'trash-2', onclick: `delKey('${k.id}')`, title: 'Revoke Key', variant: 'danger' })}
             </div>
           </div>
@@ -314,8 +326,17 @@ export function DashboardPage({
         });
       }
 
+      function copyApiBaseUrl() {
+        const url = window.location.origin + '/api';
+        navigator.clipboard.writeText(url);
+        showToast('API Base URL copied: ' + url);
+      }
+
       // Initialize Chart.js Charts
       window.addEventListener('DOMContentLoaded', () => {
+        const apiEl = document.getElementById('apiBaseUrlDisplay');
+        if (apiEl) apiEl.textContent = window.location.origin + '/api';
+
         const domainCtx = document.getElementById('domainChart');
         const activityCtx = document.getElementById('activityChart');
 
