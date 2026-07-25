@@ -13,8 +13,8 @@ export async function requireAuth(c: Context<{ Bindings: Env }>) {
     return c.json({ error: 'Unauthorized' }, 401)
   }
   
-  const { isValidSession } = await import('../db/queries')
-  if (!(await isValidSession(c.env.DB, sid))) {
+  const { isValidAdminSession } = await import('../db/queries')
+  if (!(await isValidAdminSession(c.env.DB, sid))) {
     clearSessionCookie(c)
     if (c.req.header('accept')?.includes('text/html')) {
       return c.redirect('/login')

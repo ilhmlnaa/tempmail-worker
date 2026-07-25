@@ -58,9 +58,8 @@ app.post('/setup', async (c) => {
   const { updateSetting, createSession } = await import('./db/queries')
   await updateSetting(c.env.DB, 'auth_password', password)
   
-  
   const sid = crypto.randomUUID()
-  await createSession(c.env.DB, sid)
+  await createSession(c.env.DB, sid, true)
   const { setSessionCookie } = await import('./api/auth')
   setSessionCookie(c, sid)
   
@@ -110,7 +109,7 @@ app.post('/auth/login', async (c) => {
   }
 
   const sid = crypto.randomUUID()
-  await createSession(c.env.DB, sid)
+  await createSession(c.env.DB, sid, true)
   setSessionCookie(c, sid)
   
   // If JSON (AJAX), return success; if form, redirect

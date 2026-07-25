@@ -57,8 +57,8 @@ export async function getMessages(db: D1Database, address: string, limit = 50) {
 
 // ── Sessions (web dashboard) ───────────────────────────────
 
-export async function createSession(db: D1Database, id: string) {
-  await db.prepare('INSERT OR IGNORE INTO sessions (id) VALUES (?)').bind(id).run()
+export async function createSession(db: D1Database, id: string, isAdmin = false) {
+  await db.prepare('INSERT OR IGNORE INTO sessions (id, is_admin) VALUES (?, ?)').bind(id, isAdmin ? 1 : 0).run()
 }
 
 export async function linkEmailToSession(db: D1Database, sid: string, address: string) {
@@ -241,6 +241,11 @@ export async function deleteEmail(db: D1Database, address: string) {
 
 export async function isValidSession(db: D1Database, id: string): Promise<boolean> {
   const r = await db.prepare('SELECT 1 FROM sessions WHERE id = ?').bind(id).first()
+  return !!r
+}
+
+export async function isValidAdminSession(db: D1Database, id: string): Promise<boolean> {
+  const r = await db.prepare('SELECT 1 FROM sessions WHERE id = ? AND is_admin = 1').bind(id).first()
   return !!r
 }
 
