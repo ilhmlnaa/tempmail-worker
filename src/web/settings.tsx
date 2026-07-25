@@ -100,7 +100,9 @@ export function SettingsPage({
         </div>
 
         <div>
-          <button type="submit" class="btn-primary" id="btnSavePublicCfg">Save Public Settings</button>
+          <button type="submit" class="btn-primary" id="btnSavePublicCfg">
+            <i data-lucide="shield-check" class="icon-sm"></i> Save Public Settings
+          </button>
         </div>
       </form>
     `})}
@@ -122,7 +124,7 @@ export function SettingsPage({
 
         <div class="domain-add-row">
           <input type="text" id="newDomainInput" placeholder="Enter new domain (e.g. domain.com)" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addDomain();}" />
-          <button type="button" class="btn-primary" onclick="addDomain()" style="padding:9px 20px;height:40px">
+          <button type="button" class="btn-primary" id="btnAddDomain" onclick="addDomain()" style="padding:9px 20px;height:40px">
             <i data-lucide="plus" class="icon-sm"></i> Add Domain
           </button>
         </div>
@@ -147,13 +149,29 @@ export function SettingsPage({
         </div>
 
         <div>
-          <button type="submit" class="btn-primary" id="btnSaveCfg">Save Password</button>
+          <button type="submit" class="btn-primary" id="btnSaveCfg">
+            <i data-lucide="lock" class="icon-sm"></i> Save Password
+          </button>
         </div>
       </form>
     `})}
 
     <script>
-      let activeDomains = ${raw(JSON.stringify(initialDomains))};
+      let activeDomains = ${raw(JSON.stringify(initialDomains))};      let toastTimer = null;
+      function showToast(msg, isError = false) {
+        const t = document.getElementById('toast');
+        if (!t) return;
+        if (toastTimer) clearTimeout(toastTimer);
+
+        t.style.border = isError ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)';
+        t.style.boxShadow = isError ? '0 4px 20px rgba(239, 68, 68, 0.25)' : '0 4px 20px rgba(16, 185, 129, 0.25)';
+        const icon = isError ? '<i data-lucide="alert-circle" style="color:#ef4444;width:18px;height:18px;margin-right:8px;vertical-align:middle"></i>' : '<i data-lucide="check-circle" style="color:#10b981;width:18px;height:18px;margin-right:8px;vertical-align:middle"></i>';
+        t.innerHTML = icon + '<span style="vertical-align:middle">' + msg + '</span>';
+        lucide.createIcons();
+
+        t.classList.add('show');
+        toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+      }
 
       function handlePublicScope(scope) {
         const btnAll = document.getElementById('pub-scope-all');
@@ -235,52 +253,76 @@ export function SettingsPage({
 
       function renderDomainTags() {
         const container = document.getElementById('domainTagsList');
-        if (activeDomains.length === 0) {
-          container.innerHTML = '<p style="color:var(--text-dim);font-size:0.85rem">No domains added yet. Add a domain below.</p>';
-          return;
+        if (container) {
+          if (activeDomains.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-dim);font-size:0.85rem">No domains added yet. Add a domain below.</p>';
+          } else {
+            container.innerHTML = activeDomains.map(d => 
+              '<div class="domain-tag-item" data-domain="' + d + '">' +
+                '<span>' + d + '</span>' +
+                '<button type="button" onclick="removeDomain(\'' + d + '\')" title="Remove domain">&times;</button>' +
+              '</div>'
+            ).join('');
+          }
         }
-        container.innerHTML = activeDomains.map(d => 
-          \`<div class="domain-tag-item" data-domain="\${d}">
-            <span>\${d}</span>
-            <button type="button" onclick="removeDomain('\${d}')" title="Remove domain">&times;</button>
-          </div>\`
-        ).join('');
+
+        const grid = document.getElementById('publicDomainGrid');
+        if (grid) {
+          grid.innerHTML = activeDomains.map(d => {
+            return '<label class="domain-tag public-domain-tag-item selected" data-domain-name="' + d + '">' +
+              '<input type="checkbox" name="publicSelectedDomains" value="' + d + '" checked onchange="onPublicTagChange(this)" style="display:none" />' +
+              '<i data-lucide="check" class="icon-sm tag-check"></i>' +
+              '<span>@' + d + '</span>' +
+            '</label>';
+          }).join('');
+          lucide.createIcons();
+        }
+        updatePublicCountBadge();
       }
 
       async function addDomain() {
         const input = document.getElementById('newDomainInput');
+        const btn = document.getElementById('btnAddDomain');
         const val = input.value.trim().toLowerCase().replace(/[^a-z0-9.-]/g, '');
         if (!val) {
-          showToast('Please enter a valid domain name');
+          showToast('Please enter a valid domain name', true);
           return;
         }
         if (!val.includes('.')) {
-          showToast('Domain must include extension (e.g. domain.com)');
+          showToast('Domain must include extension (e.g. domain.com)', true);
           return;
         }
         if (activeDomains.includes(val)) {
-          showToast('Domain is already added');
+          showToast('Domain is already added', true);
           return;
         }
         
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm spin-anim"></i> Adding...';
+        lucide.createIcons();
+
         const oldDomains = [...activeDomains];
         activeDomains.push(val);
         renderDomainTags();
-        input.value = '';
 
         try {
           const res = await saveDomainsToServer(activeDomains.join(','));
           if (!res.ok) {
             activeDomains = oldDomains;
             renderDomainTags();
-            showToast('Failed to add domain');
+            showToast('Failed to add domain', true);
           } else {
-            showToast('Domain added successfully');
+            input.value = '';
+            showToast('Domain @' + val + ' added successfully!');
           }
         } catch {
           activeDomains = oldDomains;
           renderDomainTags();
-          showToast('Error connecting to server');
+          showToast('Error connecting to server', true);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="plus" class="icon-sm"></i> Add Domain';
+          lucide.createIcons();
         }
       }
 
@@ -295,14 +337,14 @@ export function SettingsPage({
             if (!res.ok) {
               activeDomains = oldDomains;
               renderDomainTags();
-              showToast('Failed to remove domain');
+              showToast('Failed to remove domain', true);
             } else {
-              showToast('Domain removed successfully');
+              showToast('Domain @' + domain + ' removed successfully!');
             }
           } catch {
             activeDomains = oldDomains;
             renderDomainTags();
-            showToast('Error connecting to server');
+            showToast('Error connecting to server', true);
           }
         });
       }
@@ -329,6 +371,8 @@ export function SettingsPage({
 
         const btn = document.getElementById('btnSavePublicCfg');
         btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm spin-anim"></i> Saving Public Settings...';
+        lucide.createIcons();
 
         try {
           const res = await fetch('/api/settings', {
@@ -343,12 +387,14 @@ export function SettingsPage({
           if (res.ok) {
             showToast('Public settings updated successfully!');
           } else {
-            showToast('Failed to update public settings');
+            showToast('Failed to update public settings', true);
           }
         } catch (err) {
-          showToast('Failed to update public settings');
+          showToast('Failed to update public settings', true);
         } finally {
           btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="shield-check" class="icon-sm"></i> Save Public Settings';
+          lucide.createIcons();
         }
       }
 
@@ -358,16 +404,18 @@ export function SettingsPage({
         const p2 = document.getElementById('cfg_repeat_password').value;
         
         if (p1 && p1 !== p2) {
-          showToast('Passwords do not match');
+          showToast('Passwords do not match', true);
           return;
         }
         if (p1 && p1.length < 8) {
-          showToast('Password must be at least 8 characters');
+          showToast('Password must be at least 8 characters', true);
           return;
         }
 
         const btn = document.getElementById('btnSaveCfg');
         btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm spin-anim"></i> Saving Password...';
+        lucide.createIcons();
 
         try {
           if (p1) {
@@ -377,17 +425,21 @@ export function SettingsPage({
               body: JSON.stringify({ auth_password: p1 })
             });
             if (res.ok) {
-              showToast('Settings saved successfully');
+              showToast('Admin password updated successfully!');
               document.getElementById('cfg_password').value = '';
               document.getElementById('cfg_repeat_password').value = '';
             } else {
-              showToast('Failed to save settings');
+              showToast('Failed to save admin password', true);
             }
+          } else {
+            showToast('Please enter a new password to change it', true);
           }
         } catch (err) {
-          showToast('Failed to save settings');
+          showToast('Failed to save settings', true);
         } finally {
           btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="lock" class="icon-sm"></i> Save Password';
+          lucide.createIcons();
         }
       }
     </script>
