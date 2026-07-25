@@ -47,11 +47,11 @@ export function DashboardPage({
           </label>
         </div>
         
-        <div id="specificDomains" style="display:none;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:12px;margin-bottom:20px;padding:16px;background:rgba(0,0,0,0.2);border-radius:8px;border:1px solid var(--border)">
+        <div id="specificDomains" style="display:none;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:12px;margin-bottom:20px;padding:16px;background:var(--panel-bg, rgba(0,0,0,0.2));border-radius:8px;border:1px solid var(--border)">
           ${domains.map(d => html`
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 0;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;transition:border-color 0.2s ease;">
               <input type="checkbox" name="selectedDomains" value="${d}" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" />
-              <span style="font-family:monospace;font-size:0.9rem;color:var(--text)">${d}</span>
+              <span style="font-family:monospace;font-size:0.9rem;color:var(--text);word-break:break-all;">${d}</span>
             </label>
           `)}
         </div>
