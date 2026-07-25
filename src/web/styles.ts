@@ -259,8 +259,55 @@ select option {
   font-weight: 500;
   color: var(--text-dim);
 }
-.key-chip strong {
-  color: #fff;
+.domain-manage-box {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.domain-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-height: 56px;
+  align-items: center;
+}
+.domain-tag-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 20px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+  color: #60a5fa;
+}
+.domain-tag-item button {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+.domain-tag-item button:hover {
+  color: #ef4444;
+}
+.domain-add-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .create-form {

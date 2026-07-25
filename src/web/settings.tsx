@@ -3,6 +3,8 @@ import { Layout } from './layout'
 import { Panel } from './components'
 
 export function SettingsPage({ domains, hasAuthSecret }: { domains: string; hasAuthSecret: boolean }) {
+  const initialDomains = domains.split(',').map(d => d.trim()).filter(Boolean)
+
   return Layout({
     title: 'Settings',
     session: true,
@@ -10,43 +12,125 @@ export function SettingsPage({ domains, hasAuthSecret }: { domains: string; hasA
     <div class="dash-header">
       <div>
         <h2><i data-lucide="settings" class="icon-inline"></i> Configuration</h2>
-        <p>Manage allowed domains and admin authentication</p>
+        <p>Manage allowed email domains and admin authentication</p>
       </div>
     </div>
 
     ${Panel({ title: 'Mail Domains', icon: 'globe', children: html`
-      <p style="color:var(--text-dim); margin-bottom:16px;">
-        Enter domains you want to use, separated by commas. These will appear in the creation dropdown and API generation.
-      </p>
-      <form class="create-form" style="display:block" onsubmit="updateSettings(event)">
-        <div class="input-group" style="margin-bottom:16px;">
-          <input type="text" id="cfg_domains" value="${domains}" style="width:100%" placeholder="e.g. example.com, mydomain.com" />
-        </div>
-
-        <h3 style="margin-top:40px;"><i data-lucide="lock" class="icon-inline"></i> Admin Password</h3>
-        <p style="color:var(--text-dim); margin-bottom:16px;">
-          Change your dashboard login password. Leave blank to keep the current password.
+      <div class="domain-manage-box">
+        <p style="color:var(--text-dim);font-size:0.9rem">
+          Manage allowed domains for creating temporary inboxes and API key permissions.
         </p>
-        <div class="input-group" style="margin-bottom:24px;">
-          <input type="password" id="cfg_password" style="width:100%" placeholder="New password" />
+
+        <div id="domainTagsList" class="domain-tags-list">
+          ${initialDomains.map(d => html`
+            <div class="domain-tag-item" data-domain="${d}">
+              <span>${d}</span>
+              <button type="button" onclick="removeDomain('${d}')" title="Remove domain">&times;</button>
+            </div>
+          `)}
         </div>
 
-        <button type="submit" class="btn-primary" id="btnSaveCfg">Save Configuration</button>
+        <div class="domain-add-row">
+          <input type="text" id="newDomainInput" placeholder="Enter new domain (e.g. domain.com)" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addDomain();}" />
+          <button type="button" class="btn-primary" onclick="addDomain()" style="padding:9px 20px;height:40px">
+            <i data-lucide="plus" class="icon-sm"></i> Add Domain
+          </button>
+        </div>
+      </div>
+    `})}
+
+    ${Panel({ title: 'Admin Password', icon: 'lock', children: html`
+      <p style="color:var(--text-dim);font-size:0.9rem;margin-bottom:20px">
+        Update your admin dashboard login password. Leave blank if you don't wish to change it.
+      </p>
+
+      <form id="settingsForm" onsubmit="updateSettings(event)">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px">
+          <div style="flex:1;min-width:220px">
+            <label style="font-size:0.85rem;color:var(--text-dim);display:block;margin-bottom:6px">New Password</label>
+            <input type="password" id="cfg_password" placeholder="Enter new password" style="width:100%" />
+          </div>
+          <div style="flex:1;min-width:220px">
+            <label style="font-size:0.85rem;color:var(--text-dim);display:block;margin-bottom:6px">Repeat New Password</label>
+            <input type="password" id="cfg_repeat_password" placeholder="Repeat new password" style="width:100%" />
+          </div>
+        </div>
+
+        <div>
+          <button type="submit" class="btn-primary" id="btnSaveCfg">Save Configuration</button>
+        </div>
       </form>
     `})}
 
     <script>
+      let activeDomains = ${JSON.stringify(initialDomains)};
+
+      function renderDomainTags() {
+        const container = document.getElementById('domainTagsList');
+        if (activeDomains.length === 0) {
+          container.innerHTML = '<p style="color:var(--text-dim);font-size:0.85rem">No domains added yet. Add a domain below.</p>';
+          return;
+        }
+        container.innerHTML = activeDomains.map(d => \`
+          <div class="domain-tag-item" data-domain="\${d}">
+            <span>\${d}</span>
+            <button type="button" onclick="removeDomain('\${d}')" title="Remove domain">&times;</button>
+          </div>
+        \`).join('');
+      }
+
+      function addDomain() {
+        const input = document.getElementById('newDomainInput');
+        const val = input.value.trim().toLowerCase().replace(/[^a-z0-9.-]/g, '');
+        if (!val) {
+          showToast('Please enter a valid domain name');
+          return;
+        }
+        if (!val.includes('.')) {
+          showToast('Domain must include extension (e.g. domain.com)');
+          return;
+        }
+        if (activeDomains.includes(val)) {
+          showToast('Domain is already added');
+          return;
+        }
+        activeDomains.push(val);
+        input.value = '';
+        renderDomainTags();
+        showToast('Domain added to list');
+      }
+
+      function removeDomain(d) {
+        activeDomains = activeDomains.filter(item => item !== d);
+        renderDomainTags();
+        showToast('Domain removed');
+      }
+
       async function updateSettings(e) {
         e.preventDefault();
         const btn = document.getElementById('btnSaveCfg');
+        
+        const pass = document.getElementById('cfg_password').value;
+        const repeatPass = document.getElementById('cfg_repeat_password').value;
+
+        if (pass || repeatPass) {
+          if (pass !== repeatPass) {
+            showToast('New password and repeat password do not match');
+            return;
+          }
+          if (pass.length < 6) {
+            showToast('Password must be at least 6 characters');
+            return;
+          }
+        }
+
         btn.disabled = true; btn.textContent = 'Saving...';
-        
-        const mail_domains = document.getElementById('cfg_domains').value;
-        const auth_password = document.getElementById('cfg_password').value;
-        
-        const payload = {};
-        if (mail_domains) payload.mail_domains = mail_domains;
-        if (auth_password) payload.auth_password = auth_password;
+
+        const payload = {
+          mail_domains: activeDomains.join(',')
+        };
+        if (pass) payload.auth_password = pass;
 
         try {
           const r = await fetch('/dashboard/settings', {
@@ -56,7 +140,7 @@ export function SettingsPage({ domains, hasAuthSecret }: { domains: string; hasA
           });
           if (r.ok) {
             showToast('Settings saved successfully');
-            setTimeout(() => location.reload(), 1500);
+            setTimeout(() => location.reload(), 1200);
           } else showToast('Failed to save settings');
         } finally {
           btn.disabled = false; btn.textContent = 'Save Configuration';
@@ -72,3 +156,4 @@ export function SettingsPage({ domains, hasAuthSecret }: { domains: string; hasA
     `
   })
 }
+
