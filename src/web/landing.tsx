@@ -68,9 +68,9 @@ export function LandingPage({ domains }: { domains: string[] }) {
       <!-- Instant Temp Mail Generator Widget -->
       <div class="hero-widget-card" id="generator">
         <div class="widget-header">
-          <div style="display:flex;align-items:center;gap:10px">
-            <i data-lucide="mail" style="color:var(--primary)"></i>
-            <span style="font-weight:600;font-size:0.95rem">Your Temporary Email Address</span>
+          <div class="widget-header-title">
+            <i data-lucide="mail"></i>
+            <span>Your Temporary Email Address</span>
           </div>
           <span class="badge" id="tempMailStatus">Ready</span>
         </div>
@@ -78,10 +78,10 @@ export function LandingPage({ domains }: { domains: string[] }) {
         <div class="widget-body">
           <div class="widget-email-row">
             <div class="widget-email-display" id="widgetEmail">Generating email...</div>
-            <button type="button" class="btn-primary" onclick="copyWidgetEmail()" id="btnCopyEmail">
+            <button type="button" class="btn-primary widget-copy-btn" onclick="copyWidgetEmail()" id="btnCopyEmail">
               <i data-lucide="copy" class="icon-sm"></i> Copy Address
             </button>
-            <button type="button" class="btn-icon" onclick="generateNewPublicMail()" title="Generate New Mail">
+            <button type="button" class="btn-icon widget-refresh-btn" onclick="generateNewPublicMail()" title="Generate New Mail" id="btnRefreshMail">
               <i data-lucide="refresh-cw" class="icon-sm"></i>
             </button>
           </div>
@@ -91,7 +91,7 @@ export function LandingPage({ domains }: { domains: string[] }) {
             <select id="widgetDomain">
               ${domains.map(d => html`<option value="${d}">@${d}</option>`)}
             </select>
-            <button type="button" class="btn-primary" onclick="createCustomMail()" style="background:var(--bg-panel-solid);border:1px solid var(--border)">
+            <button type="button" class="btn-secondary" onclick="createCustomMail()" id="btnCreateCustom">
               Create Custom
             </button>
           </div>
@@ -101,15 +101,10 @@ export function LandingPage({ domains }: { domains: string[] }) {
         <div class="widget-inbox-section">
           <div class="widget-inbox-header">
             <span><i data-lucide="inbox" class="icon-inline"></i> Incoming Messages</span>
-            <span style="font-size:0.75rem;color:var(--text-dim)" id="autoRefreshStatus">Auto-refreshing every 5s...</span>
+            <span class="widget-inbox-status" id="autoRefreshStatus">Auto-refreshing every 5s</span>
           </div>
 
-          <div class="widget-messages-container" id="widgetMessagesContainer">
-            <div style="text-align:center;padding:30px 16px;color:var(--text-dim)">
-              <i data-lucide="loader" class="spin-anim" style="width:28px;height:28px;margin-bottom:8px"></i>
-              <p style="font-size:0.875rem">Waiting for incoming messages to <strong id="waitingAddress">...</strong></p>
-            </div>
-          </div>
+          <div class="widget-messages-container" id="widgetMessagesContainer"></div>
         </div>
       </div>
     </div>
@@ -215,6 +210,35 @@ export function LandingPage({ domains }: { domains: string[] }) {
     </div>
   </footer>
 
+  <!-- Message Detail Viewer -->
+  <div class="msg-modal-backdrop" id="msgModalBackdrop" onclick="if(event.target===this)hideMessageModal()">
+    <div class="msg-modal" role="dialog" aria-modal="true" aria-labelledby="modalSubject">
+      <div class="msg-modal-header">
+        <div class="msg-modal-avatar" id="modalAvatar"></div>
+        <div class="msg-modal-meta">
+          <div class="msg-modal-subject" id="modalSubject"></div>
+          <div class="msg-modal-from" id="modalFrom"></div>
+        </div>
+        <button type="button" class="btn-icon" onclick="hideMessageModal()" aria-label="Close">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="msg-modal-toolbar">
+        <div class="toggle-group">
+          <button type="button" class="toggle-btn active" id="mv-btn-rendered" onclick="switchModalView('rendered')">Rendered</button>
+          <button type="button" class="toggle-btn" id="mv-btn-raw" onclick="switchModalView('raw')">Raw</button>
+          <button type="button" class="toggle-btn" id="mv-btn-source" onclick="switchModalView('source')">Source</button>
+        </div>
+        <span class="msg-modal-date" id="modalDate"></span>
+      </div>
+      <div class="msg-modal-body">
+        <div class="msg-view active" id="mv-rendered"></div>
+        <div class="msg-view" id="mv-raw"><pre class="msg-pre" id="modalRaw"></pre></div>
+        <div class="msg-view" id="mv-source"><pre class="msg-pre" id="modalSource"></pre></div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
   <script>
@@ -254,10 +278,36 @@ export function LandingPage({ domains }: { domains: string[] }) {
     let currentPublicEmail = '';
     let publicSessionId = localStorage.getItem('voidmail_public_sid');
     let pollInterval = null;
+    let widgetMessages = [];
 
     if (!publicSessionId) {
       publicSessionId = 'pub_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
       localStorage.setItem('voidmail_public_sid', publicSessionId);
+    }
+
+    function escapeHtml(s) {
+      return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function decodeQP(str) {
+      if (!str) return str || '';
+      return str
+        .replace(/=\\r?\\n/g, '')
+        .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    }
+
+    function formatShortDate(d) {
+      try { return new Date(d + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+      catch (e) { return ''; }
+    }
+
+    function formatFullDate(d) {
+      try { return new Date(d + 'Z').toLocaleString(); } catch (e) { return d || ''; }
+    }
+
+    function setStatus(text) {
+      const el = document.getElementById('tempMailStatus');
+      if (el) el.textContent = text;
     }
 
     function showToast(msg) {
@@ -286,17 +336,16 @@ export function LandingPage({ domains }: { domains: string[] }) {
     }
 
     async function initPublicMail() {
-      // Auto-provision public guest session
       try {
         await fetch('/api/session', { headers: { 'x-session-id': publicSessionId } });
-      } catch (e) {
-        console.error('Session init error:', e);
-      }
+      } catch (e) {}
 
       const savedEmail = localStorage.getItem('voidmail_current_email');
       if (savedEmail) {
         currentPublicEmail = savedEmail;
         updateEmailDisplay(currentPublicEmail);
+        showMessagesLoading();
+        await loadMessages(currentPublicEmail);
         startPollingMessages(currentPublicEmail);
       } else {
         await generateNewPublicMail();
@@ -315,7 +364,18 @@ export function LandingPage({ domains }: { domains: string[] }) {
       await createPublicInbox(prefix, domain);
     }
 
+    function setCreatingState(active) {
+      const ids = ['btnCreateCustom', 'btnRefreshMail', 'btnCopyEmail'];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = active;
+      });
+      setStatus(active ? 'Loading' : 'Ready');
+    }
+
     async function createPublicInbox(prefix, domain) {
+      setCreatingState(true);
+      showMessagesLoading();
       try {
         const res = await fetch('/api/inboxes', {
           method: 'POST',
@@ -330,24 +390,44 @@ export function LandingPage({ domains }: { domains: string[] }) {
           currentPublicEmail = data.address;
           localStorage.setItem('voidmail_current_email', currentPublicEmail);
           updateEmailDisplay(currentPublicEmail);
+          document.getElementById('customPrefix').value = '';
+          await loadMessages(currentPublicEmail);
           startPollingMessages(currentPublicEmail);
-          showToast('New email generated!');
-        } else if (data.error) {
-          showToast(data.error);
+          showToast('Email ready: ' + currentPublicEmail);
+        } else {
+          renderWidgetMessages([]);
+          showToast(data.error || 'Failed to create email');
         }
       } catch (err) {
-        console.error('Error creating public inbox:', err);
+        renderWidgetMessages([]);
+        showToast('Failed to create email');
+      } finally {
+        setCreatingState(false);
       }
     }
 
     function updateEmailDisplay(email) {
       document.getElementById('widgetEmail').textContent = email;
-      document.getElementById('waitingAddress').textContent = email;
+    }
+
+    async function loadMessages(email, attempts = 4) {
+      for (let a = 0; a < attempts; a++) {
+        try {
+          const res = await fetch('/api/inboxes/' + encodeURIComponent(email) + '/messages', {
+            headers: { 'x-session-id': publicSessionId }
+          });
+          if (res.ok) {
+            renderWidgetMessages(await res.json());
+            return;
+          }
+        } catch (e) {}
+        await new Promise(r => setTimeout(r, 400));
+      }
+      renderWidgetMessages([]);
     }
 
     function startPollingMessages(email) {
       if (pollInterval) clearInterval(pollInterval);
-      fetchMessages(email);
       pollInterval = setInterval(() => fetchMessages(email), 5000);
     }
 
@@ -357,40 +437,134 @@ export function LandingPage({ domains }: { domains: string[] }) {
         const res = await fetch('/api/inboxes/' + encodeURIComponent(email) + '/messages', {
           headers: { 'x-session-id': publicSessionId }
         });
-        if (res.ok) {
-          const msgs = await res.json();
-          renderWidgetMessages(msgs);
-        }
-      } catch (err) {
-        console.error('Error fetching messages:', err);
-      }
+        if (res.ok) renderWidgetMessages(await res.json());
+      } catch (err) {}
+    }
+
+    function showMessagesLoading() {
+      const container = document.getElementById('widgetMessagesContainer');
+      container.innerHTML = [0, 1, 2].map(() => \`
+        <div class="widget-msg-skeleton">
+          <div class="sk-avatar"></div>
+          <div class="sk-lines"><div class="sk-line"></div><div class="sk-line short"></div></div>
+        </div>
+      \`).join('');
     }
 
     function renderWidgetMessages(msgs) {
+      widgetMessages = msgs || [];
       const container = document.getElementById('widgetMessagesContainer');
-      if (!msgs || msgs.length === 0) {
+      if (!widgetMessages.length) {
         container.innerHTML = \`
-          <div style="text-align:center;padding:30px 16px;color:var(--text-dim)">
-            <i data-lucide="mail-open" style="width:28px;height:28px;margin-bottom:8px;opacity:0.5"></i>
-            <p style="font-size:0.875rem">No messages yet. Send an email to <strong>\${currentPublicEmail}</strong></p>
+          <div class="widget-empty">
+            <i data-lucide="mail-open"></i>
+            <p>No messages yet. Send an email to <strong>\${escapeHtml(currentPublicEmail)}</strong></p>
           </div>
         \`;
         lucide.createIcons();
         return;
       }
 
-      container.innerHTML = msgs.map((m, i) => \`
-        <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(11,15,25,0.6);margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <strong style="font-size:0.9rem;color:var(--text)">\${m.subject || '(no subject)'}</strong>
-            <span style="font-size:0.75rem;color:var(--text-dim)">\${new Date(m.createdAt).toLocaleTimeString()}</span>
-          </div>
-          <div style="font-size:0.8rem;color:#60a5fa;margin-bottom:8px">From: \${m.from}</div>
-          <div style="font-size:0.85rem;color:var(--text-dim);max-height:80px;overflow-y:auto;white-space:pre-wrap;background:rgba(0,0,0,0.2);padding:8px;border-radius:4px">\${m.body || ''}</div>
-        </div>
-      \`).join('');
+      container.innerHTML = widgetMessages.map((m, i) => {
+        const senderName = (m.from || '').replace(/<.*>/, '').trim().replace(/"/g, '') || m.from || 'Unknown';
+        const initial = (senderName.charAt(0) || '?').toUpperCase();
+        return \`
+          <button type="button" class="widget-msg-item" onclick="openMessage(\${i})">
+            <div class="widget-msg-avatar">\${escapeHtml(initial)}</div>
+            <div class="widget-msg-info">
+              <div class="widget-msg-subject">\${escapeHtml(m.subject || '(no subject)')}</div>
+              <div class="widget-msg-from">\${escapeHtml(senderName)}</div>
+            </div>
+            <div class="widget-msg-side">
+              <span class="widget-msg-time">\${escapeHtml(formatShortDate(m.createdAt))}</span>
+              <i data-lucide="chevron-right" class="icon-sm"></i>
+            </div>
+          </button>
+        \`;
+      }).join('');
       lucide.createIcons();
     }
+
+    function resizeModalIframe(iframe) {
+      if (!iframe) return;
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        if (!doc || !doc.body) return;
+        doc.body.style.margin = '0';
+        doc.body.style.padding = '16px';
+        const height = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 200);
+        iframe.style.height = (height + 24) + 'px';
+      } catch (e) {}
+    }
+
+    function openMessage(i) {
+      const m = widgetMessages[i];
+      if (!m) return;
+
+      const senderName = (m.from || '').replace(/<.*>/, '').trim().replace(/"/g, '') || m.from || 'Unknown';
+      const senderEmail = ((m.from || '').match(/<(.+)>/) || [null, m.from || ''])[1];
+
+      document.getElementById('modalAvatar').textContent = (senderName.charAt(0) || '?').toUpperCase();
+      document.getElementById('modalSubject').textContent = m.subject || '(no subject)';
+      document.getElementById('modalFrom').textContent = senderName + (senderEmail ? ' <' + senderEmail + '>' : '');
+      document.getElementById('modalDate').textContent = formatFullDate(m.createdAt);
+
+      const bodyDecoded = decodeQP(m.body || '');
+      const htmlDecoded = m.html ? decodeQP(m.html) : '';
+
+      const rendered = document.getElementById('mv-rendered');
+      if (htmlDecoded) {
+        rendered.innerHTML = '<div class="iframe-wrapper"><iframe sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" class="msg-iframe" id="modalIframe"></iframe></div>';
+        const iframe = document.getElementById('modalIframe');
+        iframe.srcdoc = htmlDecoded;
+        iframe.onload = () => {
+          resizeModalIframe(iframe);
+          setTimeout(() => resizeModalIframe(iframe), 300);
+        };
+      } else {
+        rendered.innerHTML = '<div class="msg-plain">' + escapeHtml(bodyDecoded || '(empty message)') + '</div>';
+      }
+
+      document.getElementById('modalRaw').textContent = bodyDecoded || '(empty)';
+
+      const sourceBtn = document.getElementById('mv-btn-source');
+      if (htmlDecoded) {
+        sourceBtn.style.display = '';
+        document.getElementById('modalSource').textContent = htmlDecoded;
+      } else {
+        sourceBtn.style.display = 'none';
+        document.getElementById('modalSource').textContent = '';
+      }
+
+      switchModalView('rendered');
+      const backdrop = document.getElementById('msgModalBackdrop');
+      backdrop.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      lucide.createIcons();
+    }
+
+    function switchModalView(mode) {
+      ['rendered', 'raw', 'source'].forEach(m => {
+        const btn = document.getElementById('mv-btn-' + m);
+        const view = document.getElementById('mv-' + m);
+        if (btn) btn.classList.toggle('active', m === mode);
+        if (view) view.classList.toggle('active', m === mode);
+      });
+      if (mode === 'rendered') {
+        const iframe = document.getElementById('modalIframe');
+        if (iframe) setTimeout(() => resizeModalIframe(iframe), 50);
+      }
+    }
+
+    function hideMessageModal() {
+      const backdrop = document.getElementById('msgModalBackdrop');
+      backdrop.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') hideMessageModal();
+    });
 
     function toggleLandingDrawer(show) {
       const drawer = document.getElementById('landingDrawer');
