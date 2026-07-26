@@ -1462,7 +1462,7 @@ svg.lucide { stroke-width: 2; }
   max-height: 380px;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 4px;
+  padding: 4px 4px 4px 0;
 }
 
 .widget-msg-item {
