@@ -83,10 +83,10 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
           <div class="msg-viewport">
             <div class="msg-view active" id="view-rendered-${i}">
               ${htmlDecoded
-                /* Security Note: iframe allows same-origin and popups (for anchor targeting) but DOES NOT allow scripts. 
-                   'allow-same-origin' is required for the resizeIframe function to read the scrollHeight of the inner document dynamically. 
-                   Because scripts are blocked, malicious scripts within the email body cannot exploit same-origin. */
-                ? html`<div class="iframe-wrapper"><iframe data-html="${encodeURIComponent(htmlDecoded)}" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" class="msg-iframe" id="iframe-${i}"></iframe></div>`
+                /* Security Note: srcdoc is fully sanitized server-side.
+                   We block same-origin access and popups escaping sandbox.
+                   referrerpolicy="no-referrer" prevents the target from seeing our URL. */
+                ? html`<div class="iframe-wrapper"><iframe data-html="${encodeURIComponent(htmlDecoded)}" sandbox="allow-popups" referrerpolicy="no-referrer" class="msg-iframe" id="iframe-${i}"></iframe></div>`
                 : html`<div class="msg-plain">${escape(bodyDecoded)}</div>`
               }
             </div>
@@ -104,24 +104,10 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
     `})}
 
     <script>
-      function resizeIframe(iframe) {
-        if (!iframe) return;
-        try {
-          const doc = iframe.contentDocument || iframe.contentWindow.document;
-          if (!doc || !doc.body) return;
-          doc.body.style.margin = '0';
-          doc.body.style.padding = '12px';
-          const height = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 250);
-          iframe.style.height = (height + 24) + 'px';
-        } catch(e) {}
-      }
+
 
       document.querySelectorAll('iframe[data-html]').forEach(iframe => {
         iframe.srcdoc = decodeURIComponent(iframe.dataset.html);
-        iframe.onload = () => {
-          resizeIframe(iframe);
-          setTimeout(() => resizeIframe(iframe), 300);
-        };
       });
 
       function toggleMsg(id) {
@@ -131,13 +117,6 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
         const isHidden = detail.classList.toggle('hidden');
         if (badge) badge.style.display = isHidden ? '' : 'none';
         if (chevron) chevron.style.transform = isHidden ? '' : 'rotate(180deg)';
-        if (!isHidden) {
-          const iframe = document.getElementById('iframe-' + id);
-          if (iframe) {
-            setTimeout(() => resizeIframe(iframe), 50);
-            setTimeout(() => resizeIframe(iframe), 300);
-          }
-        }
         lucide.createIcons();
       }
 
@@ -148,10 +127,6 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
           if (btn) btn.classList.toggle('active', m === mode);
           if (view) view.classList.toggle('active', m === mode);
         });
-        if (mode === 'rendered') {
-          const iframe = document.getElementById('iframe-' + id);
-          if (iframe) setTimeout(() => resizeIframe(iframe), 50);
-        }
       }
 
       function copyAddress() {
