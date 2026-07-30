@@ -306,6 +306,27 @@ app.get('/admin/settings', async (c) => {
   }))
 })
 
+app.get('/admin/maintenance', async (c) => {
+  const sid = await requireAuth(c)
+  if (typeof sid === 'object') return sid
+
+  const settings = await getMaintenanceConfig(c.env.DB)
+  const timezone = await getSetting(c.env.DB, 'timezone', 'Asia/Jakarta')
+  const timeFormat = await getSetting(c.env.DB, 'time_format', '24')
+
+  return c.html(MaintenanceSettingsPage({
+    settings: {
+      ...settings,
+      enabled: settings.enabled ? 'enabled' : 'disabled',
+      showBanner: settings.showBanner ? 'enabled' : 'disabled',
+      allowApi: settings.allowApi ? 'enabled' : 'disabled',
+      allowInboxReads: settings.allowInboxReads ? 'enabled' : 'disabled',
+    },
+    timezone,
+    timeFormat,
+  }))
+})
+
 app.get('/docs', (c) => c.html(DocsPage({ session: false })))
 app.get('/admin/docs', (c) => c.html(DocsPage({ session: true })))
 

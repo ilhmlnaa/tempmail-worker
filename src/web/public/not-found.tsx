@@ -15,7 +15,7 @@ export function NotFoundPage({ session = false }: { session?: boolean }) {
           The page you are looking for has vanished into the void.
         </h2>
         <a href="${session ? '/admin' : '/#'}" class="btn-primary" style="text-decoration: none; padding: 12px 28px; font-size: 1rem;">
-          <i data-lucide="arrow-left" class="icon-inline" style="margin-right: 8px;"></i>
+          <i data-lucide="arrow-left" class="icon-inline" style="margin-right: 8px; color: currentColor;"></i>
           Return to Safety
         </a>
       </div>
