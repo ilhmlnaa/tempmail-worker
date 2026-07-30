@@ -492,10 +492,16 @@ export function SettingsPage({
       }
 
       async function saveDomainsToServer(domainStr) {
+        const isAllScope = document.getElementById('pub-scope-all').classList.contains('active');
+        const selectedDomains = Array.from(document.querySelectorAll('input[name="publicSelectedDomains"]:checked')).map(input => input.value);
+
         return fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mail_domains: domainStr })
+          body: JSON.stringify({
+            mail_domains: domainStr,
+            public_allowed_domains: isAllScope ? '*' : selectedDomains.join(',')
+          })
         });
       }
 
