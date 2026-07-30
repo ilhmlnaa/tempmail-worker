@@ -186,7 +186,7 @@ select option {
   padding: 24px;
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--text);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -1535,8 +1535,23 @@ svg.lucide { stroke-width: 2; }
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 240px;
+  max-height: 220px;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+.domain-select-menu::-webkit-scrollbar {
+  width: 5px;
+}
+.domain-select-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+.domain-select-menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+.domain-select-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
 }
 .domain-select-menu[hidden] { display: none !important; }
 .domain-select-option {
