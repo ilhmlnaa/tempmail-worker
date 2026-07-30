@@ -4,6 +4,7 @@ import { isValidSession, isEmailLinkedToSession, getEmailRecord, deleteEmail } f
 import { getPublicSessionCookie, requireAuth, setPublicSessionCookie, hashApiKey } from './auth'
 import { clientIp, enforceRateLimits, RATE_LIMITS } from '../security/rateLimit'
 import { sanitizeHtmlEmail } from '../email/sanitizer'
+import { generateAnimeLocalPart } from '../email/address-generator'
 
 import {
   createEmail, getMessages, emailExists, createSession,
@@ -143,13 +144,23 @@ api.post('/api/inboxes', async (c) => {
     }
   }
 
-  let address: string
+  let address = ''
   if (body.address) {
     const clean = body.address.toLowerCase().replace(/[^a-z0-9._-]/g, '')
-    address = `${clean}@${domain}`
-    if (!clean) address = `${randomString(12)}@${domain}`
-  } else {
-    address = `${randomString(12)}@${domain}`
+    if (clean) address = `${clean}@${domain}`
+  }
+
+  // If not provided or completely stripped, generate anime name pattern
+  if (!address) {
+    for (let attempts = 0; attempts < 5; attempts++) {
+      const candidate = `${generateAnimeLocalPart()}@${domain}`
+      if (!(await emailExists(c.env.DB, candidate))) {
+        address = candidate
+        break
+      }
+    }
+    // Fallback if extremely unlucky (should be very rare with 19k names * 256 suffixes)
+    if (!address) address = `${randomString(12)}@${domain}`
   }
 
   if (!apiKeyRecord && await emailExists(c.env.DB, address)) {
@@ -247,12 +258,21 @@ api.post('/dashboard/inboxes', async (c) => {
   const domains = (await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'example.com')).split(',').map(d => d.trim())
   const domain = (body.domain && domains.includes(body.domain)) ? body.domain : (domains[0] || 'example.com')
 
-  let address: string
+  let address = ''
   if (body.local) {
     const clean = body.local.toLowerCase().replace(/[^a-z0-9._-]/g, '')
-    address = `${clean}@${domain}`
-  } else {
-    address = `${randomString(12)}@${domain}`
+    if (clean) address = `${clean}@${domain}`
+  }
+  
+  if (!address) {
+    for (let attempts = 0; attempts < 5; attempts++) {
+      const candidate = `${generateAnimeLocalPart()}@${domain}`
+      if (!(await emailExists(c.env.DB, candidate))) {
+        address = candidate
+        break
+      }
+    }
+    if (!address) address = `${randomString(12)}@${domain}`
   }
 
   const exists = await emailExists(c.env.DB, address)

@@ -60,7 +60,7 @@ No application server to maintain. No client-controlled session identifiers. Jus
 ## ✨ Features
 
 - **📬 Temporary inboxes at the edge**
-  - Creates random or custom temporary email addresses.
+  - Creates randomized anime-themed temporary email addresses (e.g. `nezuko0x12@domain`).
   - Supports multiple email domains from one Worker deployment.
 - **🧭 Session inbox switcher**
   - Keeps a list of inboxes created by the current browser session.
