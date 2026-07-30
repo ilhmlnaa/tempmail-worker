@@ -26,6 +26,20 @@ export interface AppMetrics {
   lifetimeMessages: number
 }
 
+export interface MaintenanceConfig {
+  enabled: boolean
+  startAt: string
+  endAt: string
+  bannerTitle: string
+  bannerMessage: string
+  pageTitle: string
+  pageMessage: string
+  showBanner: boolean
+  allowApi: boolean
+  allowInboxReads: boolean
+  status: 'inactive' | 'scheduled' | 'active' | 'expired'
+}
+
 // ── Emails ─────────────────────────────────────────────────
 
 export async function createEmail(
@@ -285,6 +299,37 @@ export async function getSetting(db: D1Database, key: string, fallback: string):
 export async function updateSetting(db: D1Database, key: string, value: string) {
   await db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?')
     .bind(key, value, value).run()
+}
+
+export async function getMaintenanceConfig(db: D1Database, now = new Date()): Promise<MaintenanceConfig> {
+  const values = await Promise.all([
+    getSetting(db, 'maintenance_enabled', 'disabled'),
+    getSetting(db, 'maintenance_start_at', ''),
+    getSetting(db, 'maintenance_end_at', ''),
+    getSetting(db, 'maintenance_banner_title', 'Scheduled Maintenance'),
+    getSetting(db, 'maintenance_banner_message', 'VoidMail will be temporarily unavailable while we upgrade our systems.'),
+    getSetting(db, 'maintenance_page_title', 'We will be back shortly'),
+    getSetting(db, 'maintenance_page_message', 'VoidMail is undergoing planned maintenance. Please check back shortly.'),
+    getSetting(db, 'maintenance_show_banner', 'enabled'),
+    getSetting(db, 'maintenance_allow_api', 'disabled'),
+    getSetting(db, 'maintenance_allow_inbox_reads', 'disabled'),
+  ])
+  const [enabled, startAt, endAt, bannerTitle, bannerMessage, pageTitle, pageMessage, showBanner, allowApi, allowInboxReads] = values
+  const start = startAt ? new Date(startAt) : null
+  const end = endAt ? new Date(endAt) : null
+  const status = enabled !== 'enabled' || !start || Number.isNaN(start.getTime())
+    ? 'inactive'
+    : end && !Number.isNaN(end.getTime()) && now >= end
+      ? 'expired'
+      : now >= start
+        ? 'active'
+        : 'scheduled'
+
+  return {
+    enabled: enabled === 'enabled', startAt, endAt, bannerTitle, bannerMessage, pageTitle, pageMessage,
+    showBanner: showBanner === 'enabled', allowApi: allowApi === 'enabled',
+    allowInboxReads: allowInboxReads === 'enabled', status,
+  }
 }
 
 export async function deleteEmail(db: D1Database, address: string) {

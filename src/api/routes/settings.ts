@@ -50,6 +50,39 @@ const saveSettingsHandler = async (c: any) => {
   if (body.time_format !== undefined) {
     await updateSetting(c.env.DB, 'time_format', body.time_format === '12' ? '12' : '24')
   }
+
+  const hasMaintenanceSettings = Object.keys(body).some(key => key.startsWith('maintenance_'))
+  if (hasMaintenanceSettings) {
+    const startAt = String(body.maintenance_start_at || '')
+    const endAt = String(body.maintenance_end_at || '')
+    const start = startAt ? new Date(startAt) : null
+    const end = endAt ? new Date(endAt) : null
+    if (body.maintenance_enabled === 'enabled' && (!start || Number.isNaN(start.getTime()))) {
+      return c.json({ error: 'A valid maintenance start time is required.' }, 400)
+    }
+    if (end && Number.isNaN(end.getTime())) return c.json({ error: 'Invalid maintenance end time.' }, 400)
+    if (start && end && start >= end) return c.json({ error: 'Maintenance end time must be after start time.' }, 400)
+
+    const fields: Record<string, { key: string; max: number }> = {
+      maintenance_banner_title: { key: 'maintenance_banner_title', max: 100 },
+      maintenance_banner_message: { key: 'maintenance_banner_message', max: 300 },
+      maintenance_page_title: { key: 'maintenance_page_title', max: 100 },
+      maintenance_page_message: { key: 'maintenance_page_message', max: 500 },
+    }
+    for (const [field, rule] of Object.entries(fields)) {
+      if (body[field] !== undefined) {
+        const value = String(body[field]).trim()
+        if (!value || value.length > rule.max) return c.json({ error: `${field} must be between 1 and ${rule.max} characters.` }, 400)
+        await updateSetting(c.env.DB, rule.key, value)
+      }
+    }
+    await updateSetting(c.env.DB, 'maintenance_enabled', body.maintenance_enabled === 'enabled' ? 'enabled' : 'disabled')
+    await updateSetting(c.env.DB, 'maintenance_start_at', startAt ? new Date(startAt).toISOString() : '')
+    await updateSetting(c.env.DB, 'maintenance_end_at', endAt ? new Date(endAt).toISOString() : '')
+    await updateSetting(c.env.DB, 'maintenance_show_banner', body.maintenance_show_banner === 'disabled' ? 'disabled' : 'enabled')
+    await updateSetting(c.env.DB, 'maintenance_allow_api', body.maintenance_allow_api === 'enabled' ? 'enabled' : 'disabled')
+    await updateSetting(c.env.DB, 'maintenance_allow_inbox_reads', body.maintenance_allow_inbox_reads === 'enabled' ? 'enabled' : 'disabled')
+  }
   
   return c.json({ ok: true })
 }

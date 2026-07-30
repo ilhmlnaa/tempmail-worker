@@ -61,6 +61,9 @@ export function SidebarNav() {
         <a href="/admin/settings" id="nav-settings" onclick="toggleSidebar(false)">
           <i data-lucide="settings"></i> Settings
         </a>
+        <a href="/admin/maintenance" id="nav-maintenance" onclick="toggleSidebar(false)">
+          <i data-lucide="wrench"></i> Maintenance
+        </a>
         <a href="/admin/docs" id="nav-docs" onclick="toggleSidebar(false)">
           <i data-lucide="book-open"></i> API Docs
         </a>

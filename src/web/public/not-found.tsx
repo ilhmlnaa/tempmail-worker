@@ -1,5 +1,5 @@
 import { html } from 'hono/html'
-import { Layout } from './layout'
+import { Layout } from '../layout'
 
 export function NotFoundPage({ session = false }: { session?: boolean }) {
   return Layout({

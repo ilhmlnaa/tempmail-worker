@@ -1,5 +1,5 @@
 import { html, raw } from 'hono/html'
-import { Layout } from './layout'
+import { Layout } from '../layout'
 
 export function DocsPage({ session = false }: { session?: boolean }) {
   const swaggerHtml = `

@@ -205,7 +205,7 @@ import { buildSecurityTxt } from './security/securityTxt'
 
 // ─── 9. Landing Browser Script Syntax ─────────────────────────────
 
-import { LandingPage } from './web/landing'
+import { LandingPage } from './web/public/landing'
 
 {
   const landingStr = String(LandingPage({ domains: ['mail.example.com'], turnstileSiteKey: 'test-site-key', metrics: { lifetimeInboxes: 0, lifetimeMessages: 0 }, retentionHours: 24, timezone: 'UTC', timeFormat: '24' }))
@@ -217,8 +217,8 @@ import { LandingPage } from './web/landing'
 
 // ─── 10. Admin Inbox and 404 Browser Templates ────────────────────
 
-import { InboxesListPage } from './web/inboxes-list'
-import { NotFoundPage } from './web/not-found'
+import { InboxesListPage } from './web/admin/inboxes-list'
+import { NotFoundPage } from './web/public/not-found'
 
 {
   const inboxPage = String(InboxesListPage({
@@ -254,6 +254,37 @@ import { Layout } from './web/layout'
   console.assert(layout.includes('id="confirmInputContainer"'), 'custom prompt input container rendered')
   console.assert(layout.includes('function promptAction'), 'promptAction javascript function included')
   console.log('PASS: custom prompt modal')
+}
+
+// ─── 13. Maintenance Config Logic ────────────────────────────────
+
+import { getMaintenanceConfig } from './db/queries'
+
+{
+  const dbMock = {
+    prepare: (sql: string) => ({
+      bind: (...args: any[]) => ({
+        first: async () => {
+          const key = args[0]
+          if (key === 'maintenance_enabled') return { value: 'enabled' }
+          if (key === 'maintenance_start_at') return { value: '2026-07-30T10:00:00.000Z' }
+          if (key === 'maintenance_end_at') return { value: '2026-07-30T12:00:00.000Z' }
+          return null
+        }
+      })
+    })
+  } as any
+
+  const scheduled = await getMaintenanceConfig(dbMock, new Date('2026-07-30T09:00:00.000Z'))
+  console.assert(scheduled.status === 'scheduled', 'future start date evaluates to scheduled')
+
+  const active = await getMaintenanceConfig(dbMock, new Date('2026-07-30T11:00:00.000Z'))
+  console.assert(active.status === 'active', 'in-window date evaluates to active')
+
+  const expired = await getMaintenanceConfig(dbMock, new Date('2026-07-30T13:00:00.000Z'))
+  console.assert(expired.status === 'expired', 'past end date evaluates to expired')
+
+  console.log('PASS: maintenance config logic')
 }
 
 console.log('\nAll checks passed.')

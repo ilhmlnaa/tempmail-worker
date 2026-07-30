@@ -14,15 +14,17 @@ import { Hono } from 'hono'
 import api from './api/routes'
 import { handleEmail } from './email/handler'
 import { requireAuth, setSessionCookie, clearSessionCookie, verifyPassword } from './api/auth'
-import { getSessionEmails, getAllEmails, linkEmailToSession, createSession, getSetting, getDomainStats, getAppMetrics, deleteEmptyEmails, deleteOldEmails, updateSetting } from './db/queries'
-import { LoginPage } from './web/login'
-import { LandingPage } from './web/landing'
-import { DashboardPage } from './web/dashboard'
-import { InboxesListPage } from './web/inboxes-list'
-import { DocsPage } from './web/docs'
-import { SettingsPage } from './web/settings'
-import { InboxPage } from './web/inbox'
-import { NotFoundPage } from './web/not-found'
+import { getSessionEmails, getAllEmails, linkEmailToSession, createSession, getSetting, getDomainStats, getAppMetrics, getMaintenanceConfig, deleteEmptyEmails, deleteOldEmails, updateSetting } from './db/queries'
+import { LoginPage } from './web/public/login'
+import { LandingPage } from './web/public/landing'
+import { DashboardPage } from './web/admin/dashboard'
+import { InboxesListPage } from './web/admin/inboxes-list'
+import { DocsPage } from './web/public/docs'
+import { SettingsPage } from './web/admin/settings'
+import { MaintenanceSettingsPage } from './web/admin/maintenance-settings'
+import { MaintenancePage } from './web/public/maintenance'
+import { InboxPage } from './web/admin/inbox'
+import { NotFoundPage } from './web/public/not-found'
 import { css } from './web/styles'
 import { logoBytes } from './web/logoData'
 import type { Env } from './db/queries'
@@ -32,6 +34,41 @@ import { buildSecurityTxt } from './security/securityTxt'
 const app = new Hono<{ Bindings: Env }>()
 
 app.use('*', securityMiddleware)
+
+app.use('*', async (c, next) => {
+  const isBypassedPath = c.req.path.startsWith('/admin') || c.req.path.startsWith('/auth') || c.req.path.startsWith('/vendor/') || c.req.path === '/setup' || c.req.path === '/styles.css' || c.req.path === '/logo.png' || c.req.path === '/.well-known/security.txt'
+  if (!isBypassedPath) {
+    const { getMaintenanceConfig } = await import('./db/queries')
+    const config = await getMaintenanceConfig(c.env.DB)
+
+    if (c.req.query('preview_maintenance') === 'true' && c.req.path === '/') {
+      const timezone = await getSetting(c.env.DB, 'timezone', 'Asia/Jakarta')
+      const timeFormat = await getSetting(c.env.DB, 'time_format', '24')
+      return c.html(MaintenancePage({ config, timezone, timeFormat }))
+    }
+
+    if (config.status === 'active') {
+      const isApi = c.req.path.startsWith('/api')
+      if (isApi) {
+        if (!config.allowApi && c.req.method !== 'OPTIONS') {
+          if (c.req.path.endsWith('/messages') && config.allowInboxReads) {
+          } else {
+            const retryAfter = config.endAt ? Math.max(1, Math.ceil((new Date(config.endAt).getTime() - Date.now()) / 1000)) : 3600
+            c.header('Retry-After', String(retryAfter))
+            return c.json({ error: 'maintenance', message: config.pageMessage, estimatedReturn: config.endAt || null }, 503)
+          }
+        }
+      } else {
+        const timezone = await getSetting(c.env.DB, 'timezone', 'Asia/Jakarta')
+        const timeFormat = await getSetting(c.env.DB, 'time_format', '24')
+        const retryAfter = config.endAt ? Math.max(1, Math.ceil((new Date(config.endAt).getTime() - Date.now()) / 1000)) : 3600
+        c.header('Retry-After', String(retryAfter))
+        return c.html(MaintenancePage({ config, timezone, timeFormat }), 503)
+      }
+    }
+  }
+  await next()
+})
 
 // ── Static assets ─────────────────────────────────────────────
 app.get('/styles.css', (c) => {
@@ -61,7 +98,7 @@ app.get('/.well-known/security.txt', (c) => {
 app.get('/setup', async (c) => {
   const { isAppConfigured } = await import('./api/auth')
   if (await isAppConfigured(c)) return c.redirect('/login')
-  const { SetupPage } = await import('./web/login')
+  const { SetupPage } = await import('./web/public/login')
   return c.html(SetupPage({}))
 })
 
@@ -73,7 +110,7 @@ app.post('/setup', async (c) => {
   const password = (body as Record<string, string>).password || ''
   const confirm = (body as Record<string, string>).confirm || ''
   
-  const { SetupPage } = await import('./web/login')
+  const { SetupPage } = await import('./web/public/login')
   if (!password || password.length < 8 || password !== confirm) {
     return c.html(SetupPage({ error: 'Password must be at least 8 characters and match.' }))
   }
@@ -113,10 +150,11 @@ app.get('/', async (c) => {
     if (domains.length === 0 && domainsStr) domains = [domainsStr.split(',')[0].trim()]
   }
   const metrics = await getAppMetrics(c.env.DB)
+  const config = await getMaintenanceConfig(c.env.DB)
   const retentionHours = parseInt(await getSetting(c.env.DB, 'cleanup_retention_hours', '24'), 10)
   const timezone = await getSetting(c.env.DB, 'timezone', 'Asia/Jakarta')
   const timeFormat = await getSetting(c.env.DB, 'time_format', '24')
-  return c.html(LandingPage({ domains, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || '', metrics, retentionHours, timezone, timeFormat }))
+  return c.html(LandingPage({ domains, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || '', metrics, retentionHours, timezone, timeFormat, maintenanceConfig: config }))
 })
 
 // ── Auth pages ────────────────────────────────────────────────

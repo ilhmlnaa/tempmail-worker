@@ -1,6 +1,8 @@
 import { html, raw } from 'hono/html'
+import { MaintenanceBanner } from './maintenance'
+import type { MaintenanceConfig } from '../../db/queries'
 
-export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours, timezone, timeFormat }: { domains: string[]; turnstileSiteKey: string; metrics: { lifetimeInboxes: number; lifetimeMessages: number }; retentionHours: number; timezone: string; timeFormat: string }) {
+export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours, timezone, timeFormat, maintenanceConfig }: { domains: string[]; turnstileSiteKey: string; metrics: { lifetimeInboxes: number; lifetimeMessages: number }; retentionHours: number; timezone: string; timeFormat: string; maintenanceConfig?: MaintenanceConfig }) {
   const primaryDomain = domains[0] || 'voidmail.my.id'
 
   return html`<!DOCTYPE html>
@@ -19,11 +21,12 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
   ${turnstileSiteKey ? html`<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>` : ''}
 </head>
 <body class="landing-body">
+  ${maintenanceConfig?.status === 'scheduled' && maintenanceConfig.showBanner ? MaintenanceBanner({ config: maintenanceConfig, timezone, timeFormat }) : ''}
   <!-- Public Navbar -->
   <header class="landing-header">
     <div class="landing-container nav-container">
       <div class="landing-logo">
-        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" /> 
+        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" />
         <span>Void<span style="color:var(--primary)">Mail</span></span>
       </div>
       <nav class="landing-nav">
@@ -42,7 +45,7 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
   <aside class="landing-drawer" id="landingDrawer">
     <div class="landing-drawer-header">
       <div class="landing-logo">
-        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" /> 
+        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" />
         <span>Void<span style="color:var(--primary)">Mail</span></span>
       </div>
       <button class="mobile-close-btn" onclick="toggleLandingDrawer(false)" aria-label="Close Menu">
@@ -150,12 +153,14 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
           <div class="widget-inbox-header">
             <div class="widget-inbox-heading">
               <i data-lucide="inbox" class="widget-inbox-heading-icon"></i>
-              <div>
-                <strong>Session inboxes</strong>
-                <span>Switch inboxes and read incoming messages</span>
+              <div class="widget-inbox-heading-copy">
+                <div class="widget-inbox-title-row">
+                  <strong>Your inboxes</strong>
+                  <span class="widget-inbox-status" id="autoRefreshStatus"><span class="pulse-dot"></span> Refreshes every 5s</span>
+                </div>
+                <span class="widget-inbox-subtitle">Switch inboxes and read incoming messages</span>
               </div>
             </div>
-            <span class="widget-inbox-status" id="autoRefreshStatus"><span class="pulse-dot"></span> Refreshes every 5s</span>
           </div>
 
           <div class="widget-inbox-master-detail">
@@ -360,23 +365,23 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
     }
 
     function formatShortDate(d) {
-      try { 
-        return new Date(d + 'Z').toLocaleTimeString([], { 
-          timeZone: '${timezone}', 
-          hour: '2-digit', 
+      try {
+        return new Date(d + 'Z').toLocaleTimeString([], {
+          timeZone: '${timezone}',
+          hour: '2-digit',
           minute: '2-digit',
           hour12: ${timeFormat === '12' ? 'true' : 'false'}
-        }); 
+        });
       }
       catch (e) { return ''; }
     }
 
     function formatFullDate(d) {
-      try { 
+      try {
         return new Date(d + 'Z').toLocaleString([], {
           timeZone: '${timezone}',
           hour12: ${timeFormat === '12' ? 'true' : 'false'}
-        }); 
+        });
       } catch (e) { return d || ''; }
     }
 
@@ -541,7 +546,7 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
           body: JSON.stringify(payload)
         });
         const data = await res.json();
-        
+
         if (res.status === 403 && data.requireCaptcha) {
           renderWidgetMessages([]);
           showTurnstileChallenge();
@@ -552,7 +557,7 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
           // Reset token state after success
           turnstileToken = null;
           hideTurnstileChallenge();
-          
+
           if (!inboxesList.find(i => i.address === data.address)) {
             inboxesList.unshift({ address: data.address, messageCount: 0 });
           }

@@ -1,6 +1,6 @@
 import { html, raw } from 'hono/html'
-import { Layout } from './layout'
-import { IconButton, EmptyState } from './components'
+import { Layout } from '../layout'
+import { IconButton, EmptyState } from '../components'
 
 interface Message {
   id: string

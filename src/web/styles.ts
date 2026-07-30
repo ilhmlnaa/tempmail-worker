@@ -1274,8 +1274,130 @@ svg.lucide { stroke-width: 2; }
 /* ==========================================================================
    Public SaaS Landing Page (VoidMail)
    ========================================================================== */
-.landing-body {
-  height: auto !important;
+.maintenance-body {
+  min-height: 100vh;
+  margin: 0;
+  background: radial-gradient(circle at 50% 0%, #172033 0%, var(--bg) 62%);
+  color: var(--text);
+}
+
+.maintenance-shell {
+  width: min(100% - 40px, 760px);
+  min-height: 100vh;
+  margin: 0 auto;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 24px;
+  text-align: center;
+}
+
+.maintenance-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.maintenance-brand img {
+  width: 32px;
+  height: 32px;
+}
+
+.maintenance-brand span span { color: var(--primary); }
+
+.maintenance-card {
+  width: min(100%, 560px);
+  padding: 44px 36px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(245, 158, 11, 0.34);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+}
+
+.maintenance-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 18px;
+  display: grid;
+  place-items: center;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 18px;
+}
+
+.maintenance-icon svg { width: 30px; height: 30px; }
+
+.maintenance-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fbbf24;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.maintenance-status span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.12);
+}
+
+.maintenance-card h1 { margin: 18px 0 12px; font-size: clamp(1.8rem, 5vw, 2.7rem); }
+.maintenance-card p { margin: 0 auto 24px; max-width: 440px; color: var(--text-dim); line-height: 1.7; }
+
+.maintenance-estimate {
+  display: grid;
+  gap: 4px;
+  margin: 0 auto 24px;
+  padding: 13px 16px;
+  background: rgba(11, 15, 25, 0.7);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.maintenance-estimate span { color: var(--text-dim); font-size: 0.76rem; }
+.maintenance-estimate strong { color: var(--text); font-size: 0.95rem; }
+.maintenance-footnote { color: var(--text-dim); font-size: 0.78rem; }
+
+.maintenance-banner {
+  position: relative;
+  z-index: 110;
+  background: #f59e0b;
+  color: #1c1917;
+}
+
+.maintenance-banner-inner {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  text-align: center;
+}
+
+.maintenance-banner-inner svg { width: 18px; height: 18px; flex-shrink: 0; }
+.maintenance-banner-inner div { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.maintenance-banner-inner strong { font-size: 0.82rem; }
+.maintenance-banner-inner span { font-size: 0.8rem; }
+
+@media (max-width: 600px) {
+  .maintenance-shell { width: min(100% - 28px, 560px); gap: 18px; }
+  .maintenance-card { padding: 32px 22px; }
+  .maintenance-banner-inner { justify-content: flex-start; text-align: left; }
+  .maintenance-banner-inner div { display: block; }
+  .maintenance-banner-inner strong, .maintenance-banner-inner span { display: block; }
+  .maintenance-banner-inner span { margin-top: 3px; }
+}
+
   overflow-y: auto !important;
   background: radial-gradient(circle at 50% 0%, #172033 0%, var(--bg) 60%) !important;
 }
@@ -1683,6 +1805,15 @@ svg.lucide { stroke-width: 2; }
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  width: 100%;
+}
+.widget-inbox-heading-copy { min-width: 0; flex: 1; }
+.widget-inbox-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 .widget-inbox-heading-icon {
   width: 20px;
@@ -1691,7 +1822,7 @@ svg.lucide { stroke-width: 2; }
   flex-shrink: 0;
 }
 .widget-inbox-heading strong { display: block; font-size: 1.05rem; color: var(--text); }
-.widget-inbox-heading span { display: block; font-size: 0.8rem; color: var(--text-dim); }
+.widget-inbox-heading .widget-inbox-subtitle { display: block; font-size: 0.8rem; color: var(--text-dim); }
 
 .widget-inbox-status {
   display: inline-flex;
@@ -2229,7 +2360,9 @@ svg.lucide { stroke-width: 2; }
   .widget-form-row { flex-direction: column; }
   .widget-inbox-section { padding: 18px; }
   .widget-inbox-header { align-items: flex-start; }
-  .widget-inbox-status { margin-left: 44px; }
+  .widget-inbox-title-row { gap: 8px; }
+  .widget-inbox-status { gap: 4px; padding: 4px 8px; font-size: 0.68rem; }
+  .widget-inbox-status .pulse-dot { width: 6px; height: 6px; }
   .widget-inbox-master-detail { display: flex; flex-direction: column; min-height: 0; }
   .widget-inbox-sidebar { border-right: none; border-bottom: 1px solid var(--border); overflow: hidden; }
   .widget-sidebar-title { position: static; padding: 10px 14px; }

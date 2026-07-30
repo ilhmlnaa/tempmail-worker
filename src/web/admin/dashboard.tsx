@@ -1,7 +1,7 @@
 import { html, raw } from 'hono/html'
-import { Layout } from './layout'
-import { Panel, StatCard, IconButton, AnalyticsChartsGrid, DomainShowcaseWidget } from './components'
-import type { Inbox } from '../db/queries'
+import { Layout } from '../layout'
+import { Panel, StatCard, IconButton, AnalyticsChartsGrid, DomainShowcaseWidget } from '../components'
+import type { Inbox } from '../../db/queries'
 
 function formatDate(value: string, timezone: string, timeFormat: string): string {
   return new Date(value.endsWith('Z') ? value : `${value}Z`).toLocaleString('en-GB', {
@@ -10,9 +10,9 @@ function formatDate(value: string, timezone: string, timeFormat: string): string
   })
 }
 
-export function DashboardPage({ 
+export function DashboardPage({
   inboxes, domains, apiKeys, totalInboxes, totalMessages, currentPage, apiKeyFilter, domainStats = {}, metrics, timezone = 'Asia/Jakarta', timeFormat = '24'
-}: { 
+}: {
   inboxes: Inbox[]; domains: string[]; apiKeys: any[]; totalInboxes: number; totalMessages: number; currentPage: number; apiKeyFilter?: any; domainStats?: Record<string, number>; metrics?: { lifetimeInboxes: number; lifetimeMessages: number }; timezone?: string; timeFormat?: string
 }) {
   const totalPages = Math.ceil(totalInboxes / 20) || 1
@@ -106,7 +106,7 @@ export function DashboardPage({
             </button>
           </div>
         </div>
-        
+
         <div id="specificDomains" class="domain-badge-grid" style="display:none">
           ${domains.map(d => html`
             <label class="domain-tag">
@@ -256,7 +256,7 @@ export function DashboardPage({
         navigator.clipboard.writeText(document.getElementById('newKey').textContent || '');
         showToast('API Key copied');
       }
-      
+
       async function create(e) {
         e.preventDefault();
         const btn = document.getElementById('btnCreate');
@@ -293,7 +293,7 @@ export function DashboardPage({
         e.preventDefault();
         const btn = document.getElementById('btnCreateKey');
         btn.disabled = true; btn.textContent = 'Generating...';
-        
+
         let domains = '*';
         const scope = document.querySelector('input[name="domainScope"]:checked').value;
         if (scope === 'specific') {

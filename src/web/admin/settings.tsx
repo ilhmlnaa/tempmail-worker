@@ -1,9 +1,9 @@
 import { html, raw } from 'hono/html'
-import { Layout } from './layout'
-import { Panel } from './components'
+import { Layout } from '../layout'
+import { Panel } from '../components'
 
-export function SettingsPage({ 
-  domains, 
+export function SettingsPage({
+  domains,
   hasAuthSecret,
   publicEnabled = 'enabled',
   publicMaxInboxes = 5,
@@ -16,8 +16,8 @@ export function SettingsPage({
   timeFormat = '24',
   lastCleanupAt = '',
   lastCleanupDeleted = 0
-}: { 
-  domains: string; 
+}: {
+  domains: string;
   hasAuthSecret: boolean;
   publicEnabled?: string;
   publicMaxInboxes?: number;
@@ -265,7 +265,7 @@ export function SettingsPage({
         const btnAll = document.getElementById('pub-scope-all');
         const btnCustom = document.getElementById('pub-scope-custom');
         const container = document.getElementById('publicDomainsContainer');
-        
+
         if (scope === '*') {
           btnAll.classList.add('active');
           btnCustom.classList.remove('active');
@@ -329,7 +329,7 @@ export function SettingsPage({
         const checked = document.querySelectorAll('input[name="publicSelectedDomains"]:checked').length;
         const badge = document.getElementById('publicDomainCountBadge');
         const isAllScope = document.getElementById('pub-scope-all').classList.contains('active');
-        
+
         if (badge) {
           if (isAllScope) {
             badge.textContent = 'All (' + activeDomains.length + ') Allowed';
@@ -438,7 +438,7 @@ export function SettingsPage({
           showToast('Domain is already added', true);
           return;
         }
-        
+
         btn.disabled = true;
         btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm spin-anim"></i> Adding...';
         if (window.lucide) lucide.createIcons();
@@ -504,7 +504,7 @@ export function SettingsPage({
         const enabled = document.getElementById('cfg_public_enabled').value;
         const max = document.getElementById('cfg_public_max').value;
         const isAllScope = document.getElementById('pub-scope-all').classList.contains('active');
-        
+
         let allowedStr = '*';
         if (!isAllScope) {
           const checked = Array.from(document.querySelectorAll('input[name="publicSelectedDomains"]:checked')).map(el => el.value);
@@ -520,7 +520,7 @@ export function SettingsPage({
           const res = await fetch('/api/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
               public_tempmail_enabled: enabled,
               public_max_inboxes_per_session: max,
               public_allowed_domains: allowedStr
@@ -556,7 +556,7 @@ export function SettingsPage({
           const res = await fetch('/api/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
               cleanup_enabled: enabled,
               cleanup_scope: scope,
               cleanup_empty_hours: emptyHours,
@@ -611,7 +611,7 @@ export function SettingsPage({
         e.preventDefault();
         const p1 = document.getElementById('cfg_password').value;
         const p2 = document.getElementById('cfg_repeat_password').value;
-        
+
         if (p1 && p1 !== p2) {
           showToast('Passwords do not match', true);
           return;

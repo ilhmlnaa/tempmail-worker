@@ -1,7 +1,7 @@
 import { html } from 'hono/html'
-import { Layout } from './layout'
-import { Panel, StatCard, IconButton } from './components'
-import type { Inbox } from '../db/queries'
+import { Layout } from '../layout'
+import { Panel, StatCard, IconButton } from '../components'
+import type { Inbox } from '../../db/queries'
 
 function formatDate(value: string, timezone: string, timeFormat: string): string {
   return new Date(value.endsWith('Z') ? value : `${value}Z`).toLocaleString('en-GB', {
