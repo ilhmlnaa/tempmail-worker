@@ -10,7 +10,7 @@
  */
 
 import { Hono } from 'hono'
-import { cors } from 'hono/cors'
+
 import api from './api/routes'
 import { handleEmail } from './email/handler'
 import { requireAuth, setSessionCookie, clearSessionCookie, verifyPassword } from './api/auth'
@@ -25,8 +25,12 @@ import { InboxPage } from './web/inbox'
 import { css } from './web/styles'
 import { logoBytes } from './web/logoData'
 import type { Env } from './db/queries'
+import { securityMiddleware } from './security/http'
+import { buildSecurityTxt } from './security/securityTxt'
 
 const app = new Hono<{ Bindings: Env }>()
+
+app.use('*', securityMiddleware)
 
 // ── Static assets ─────────────────────────────────────────────
 app.get('/styles.css', (c) => {
@@ -42,8 +46,16 @@ app.get('/logo.png', (c) => {
   })
 })
 
-// ── Global CORS for API ───────────────────────────────────────
-app.use('/api/*', cors())
+app.get('/.well-known/security.txt', (c) => {
+  const content = buildSecurityTxt(c.env, new URL(c.req.url).origin)
+  if (!content) return c.text('Security contact is not configured.', 404)
+  return c.text(content, 200, {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Cache-Control': 'public, max-age=3600',
+  })
+})
+
+
 
 app.get('/setup', async (c) => {
   const { isAppConfigured } = await import('./api/auth')
@@ -99,7 +111,7 @@ app.get('/', async (c) => {
     domains = domains.filter(d => allowed.includes(d))
     if (domains.length === 0 && domainsStr) domains = [domainsStr.split(',')[0].trim()]
   }
-  return c.html(LandingPage({ domains }))
+  return c.html(LandingPage({ domains, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || '' }))
 })
 
 // ── Auth pages ────────────────────────────────────────────────
