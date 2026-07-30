@@ -265,7 +265,9 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
   <div id="toast"></div>
 
   <script>
-    lucide.createIcons();
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide) lucide.createIcons();
+    });
 
     // Active ScrollSpy for Header Navigation
     const navGen = document.getElementById('nav-gen');
@@ -621,7 +623,7 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
 
       const rendered = document.getElementById('mv-rendered');
       if (htmlDecoded) {
-        const hasBlockedImages = /src="data:image\/gif;base64/i.test(htmlDecoded);
+        const hasBlockedImages = htmlDecoded.toLowerCase().includes('src="data:image/gif;base64');
         const proxyBanner = hasBlockedImages
           ? '<div class="proxy-img-banner"><i data-lucide="shield-alert"></i> <span>External images blocked to protect your privacy.</span> <button type="button" class="btn-secondary btn-sm" onclick="loadMessageImagesWithProxy(' + i + ')">Load images via ImgCDN</button></div>'
           : '';

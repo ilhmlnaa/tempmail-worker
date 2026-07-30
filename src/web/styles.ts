@@ -1438,6 +1438,9 @@ svg.lucide { stroke-width: 2; }
   border-radius: var(--radius-sm);
   margin-top: 4px;
 }
+.turnstile-panel[hidden] {
+  display: none !important;
+}
 
 .turnstile-panel-copy {
   display: flex;

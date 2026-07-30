@@ -203,4 +203,16 @@ import { buildSecurityTxt } from './security/securityTxt'
   console.log('PASS: security.txt builder')
 }
 
+// ─── 9. Landing Browser Script Syntax ─────────────────────────────
+
+import { LandingPage } from './web/landing'
+
+{
+  const landingStr = String(LandingPage({ domains: ['mail.example.com'], turnstileSiteKey: 'test-site-key' }))
+  const match = landingStr.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/)
+  console.assert(!!match, 'landing inline script found')
+  new Function(match?.[1] || '')
+  console.log('PASS: landing browser script syntax')
+}
+
 console.log('\nAll checks passed.')
