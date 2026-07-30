@@ -111,6 +111,36 @@ export async function getAllEmails(db: D1Database, limit: number = 20, offset: n
   }
 }
 
+export async function searchEmails(
+  db: D1Database,
+  search: string,
+  messageFilter: 'all' | 'empty' | 'has-messages',
+  limit = 20,
+  offset = 0,
+) {
+  const pattern = `%${search.toLowerCase()}%`
+  const messageCondition = messageFilter === 'empty'
+    ? 'AND NOT EXISTS (SELECT 1 FROM messages m WHERE m.email_address = e.address)'
+    : messageFilter === 'has-messages'
+      ? 'AND EXISTS (SELECT 1 FROM messages m WHERE m.email_address = e.address)'
+      : ''
+  const where = `(LOWER(e.address) LIKE ? OR LOWER(e.domain) LIKE ?) ${messageCondition}`
+
+  const count = await db.prepare(`SELECT COUNT(*) AS total FROM emails e WHERE ${where}`)
+    .bind(pattern, pattern).first<{ total: number }>()
+  const result = await db.prepare(`
+    SELECT e.address, e.domain, e.created_at AS createdAt,
+           (SELECT COUNT(*) FROM messages m WHERE m.email_address = e.address) AS messageCount,
+           (SELECT MAX(m.received_at) FROM messages m WHERE m.email_address = e.address) AS lastMessageAt
+    FROM emails e
+    WHERE ${where}
+    ORDER BY e.created_at DESC
+    LIMIT ? OFFSET ?
+  `).bind(pattern, pattern, limit, offset).all()
+
+  return { total: Number(count?.total || 0), emails: result.results }
+}
+
 export async function getEmailsByApiKey(db: D1Database, apiKeyId: string, limit: number = 20, offset: number = 0) {
   const countResult = await db.prepare('SELECT COUNT(*) as total FROM emails WHERE api_key_id = ?').bind(apiKeyId).first()
   const total = countResult ? (countResult.total as number) : 0
@@ -243,8 +273,23 @@ export async function updateSetting(db: D1Database, key: string, value: string) 
 }
 
 export async function deleteEmail(db: D1Database, address: string) {
-  // CASCADE deletes messages + session_emails links via FK
   await db.prepare('DELETE FROM emails WHERE address = ?').bind(address.toLowerCase()).run()
+}
+
+export async function deleteEmptyEmails(db: D1Database): Promise<number> {
+  const result = await db.prepare(`
+    DELETE FROM emails 
+    WHERE address NOT IN (SELECT DISTINCT email_address FROM messages)
+  `).run()
+  return result.meta.changes
+}
+
+export async function deleteOldEmails(db: D1Database, days: number): Promise<number> {
+  const result = await db.prepare(`
+    DELETE FROM emails 
+    WHERE created_at < datetime('now', ? || ' days')
+  `).bind(-Math.abs(days)).run()
+  return result.meta.changes
 }
 
 export async function isValidSession(db: D1Database, id: string): Promise<boolean> {

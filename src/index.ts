@@ -22,6 +22,7 @@ import { InboxesListPage } from './web/inboxes-list'
 import { DocsPage } from './web/docs'
 import { SettingsPage } from './web/settings'
 import { InboxPage } from './web/inbox'
+import { NotFoundPage } from './web/not-found'
 import { css } from './web/styles'
 import { logoBytes } from './web/logoData'
 import type { Env } from './db/queries'
@@ -253,18 +254,30 @@ app.get('/admin/inboxes', async (c) => {
 
   try {
     const page = Math.max(1, parseInt(c.req.query('page') || '1', 10))
+    const search = (c.req.query('q') || '').trim().slice(0, 100)
+    const requestedFilter = c.req.query('messages') || 'all'
+    const messageFilter = ['all', 'empty', 'has-messages'].includes(requestedFilter)
+      ? requestedFilter as 'all' | 'empty' | 'has-messages'
+      : 'all'
     const limit = 20
     const offset = (page - 1) * limit
 
-    const { getAllEmails } = await import('./db/queries')
-    const { total, totalMessages, emails: inboxes } = await getAllEmails(c.env.DB, limit, offset)
+    const { getAllEmails, searchEmails } = await import('./db/queries')
+    const stats = await getAllEmails(c.env.DB, 1, 0)
+    const filtered = await searchEmails(c.env.DB, search, messageFilter, limit, offset)
 
     return c.html(InboxesListPage({
-      inboxes: inboxes as any[], totalInboxes: total, totalMessages, currentPage: page,
+      inboxes: filtered.emails as any[],
+      totalInboxes: stats.total,
+      totalMessages: stats.totalMessages,
+      filteredTotal: filtered.total,
+      currentPage: page,
+      search,
+      messageFilter,
     }))
   } catch (err: any) {
     console.error('[inboxes] error:', err?.message)
-    return c.html(InboxesListPage({ inboxes: [], totalInboxes: 0, totalMessages: 0, currentPage: 1 }))
+    return c.html(InboxesListPage({ inboxes: [], totalInboxes: 0, totalMessages: 0, filteredTotal: 0, currentPage: 1, search: '', messageFilter: 'all' }))
   }
 })
 
@@ -278,6 +291,11 @@ app.get('/admin/inbox/:addr', async (c) => {
   const msgs = await getMessages(c.env.DB, addr)
 
   return c.html(InboxPage({ address: addr, messages: msgs as any[] }))
+})
+
+app.notFound((c) => {
+  const session = c.req.path.startsWith('/admin')
+  return c.html(NotFoundPage({ session }), 404)
 })
 
 // ═══════════════════════════════════════════════════════════════

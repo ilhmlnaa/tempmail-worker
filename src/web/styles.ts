@@ -723,6 +723,41 @@ select option {
 }
 .actions { display: flex; gap: 8px; align-items: center; }
 
+.dropdown { position: relative; }
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  z-index: 20;
+  min-width: 240px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel-solid);
+  box-shadow: var(--shadow);
+}
+.dropdown-menu.show { display: block; }
+.dropdown-menu button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  text-align: left;
+}
+.dropdown-menu button:hover,
+.dropdown-menu button:focus-visible {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+  outline: none;
+}
+.dropdown-menu button svg { width: 16px; height: 16px; }
+.text-danger { color: var(--danger); }
+
 /* Messages Panel */
 .msg-panel {
   padding: 0;

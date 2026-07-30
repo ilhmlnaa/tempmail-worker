@@ -270,8 +270,30 @@ api.delete('/dashboard/inboxes/:addr', async (c) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
   const addr = decodeURIComponent(c.req.param('addr'))
-  await unlinkEmailFromSession(c.env.DB, sid, addr)
+  await deleteEmail(c.env.DB, addr)
   return c.json({ ok: true })
+})
+
+api.post('/dashboard/inboxes/bulk-delete', async (c) => {
+  const sid = await requireAuth(c)
+  if (typeof sid === 'object') return sid
+
+  const body = (await c.req.json().catch(() => ({}))) as { mode?: string; days?: number }
+  const { deleteEmptyEmails, deleteOldEmails } = await import('../db/queries')
+
+  if (body.mode === 'empty') {
+    return c.json({ ok: true, deleted: await deleteEmptyEmails(c.env.DB) })
+  }
+
+  if (body.mode === 'older-than') {
+    const days = Math.floor(Number(body.days))
+    if (!Number.isInteger(days) || days < 1 || days > 365) {
+      return c.json({ error: 'days must be an integer between 1 and 365' }, 400)
+    }
+    return c.json({ ok: true, deleted: await deleteOldEmails(c.env.DB, days) })
+  }
+
+  return c.json({ error: 'unsupported_bulk_delete_mode' }, 400)
 })
 
 api.get('/dashboard/inboxes/:addr/messages', async (c) => {

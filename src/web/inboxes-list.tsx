@@ -3,39 +3,72 @@ import { Layout } from './layout'
 import { Panel, StatCard, IconButton } from './components'
 import type { Inbox } from '../db/queries'
 
+function escape(s: string): string {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
 export function InboxesListPage({ 
-  inboxes, totalInboxes, totalMessages, currentPage 
+  inboxes, totalInboxes, totalMessages, filteredTotal, currentPage, search, messageFilter 
 }: { 
-  inboxes: Inbox[]; totalInboxes: number; totalMessages: number; currentPage: number 
+  inboxes: Inbox[]; totalInboxes: number; totalMessages: number; filteredTotal: number; currentPage: number; search: string; messageFilter: 'all' | 'empty' | 'has-messages'
 }) {
-  const totalPages = Math.ceil(totalInboxes / 20) || 1
+  const totalPages = Math.ceil(filteredTotal / 20) || 1
   const baseUrl = '/admin/inboxes'
+  const filterParams = new URLSearchParams()
+  if (search) filterParams.set('q', search)
+  if (messageFilter !== 'all') filterParams.set('messages', messageFilter)
+  const qs = filterParams.toString() ? `&${filterParams.toString()}` : ''
 
   return Layout({
-    title: 'Generated Inboxes',
+    title: 'Manage Inboxes',
     session: true,
     children: html`
-    <div class="dash-header">
+    <div class="dash-header" style="margin-bottom: 24px;">
       <div>
-        <h2><i data-lucide="inbox" class="icon-inline"></i> Inboxes</h2>
-        <p>All temporary email inboxes currently active in the system.</p>
+        <h2><i data-lucide="inbox" class="icon-inline"></i> Manage Inboxes</h2>
+        <p>Search, filter, and purge temporary addresses.</p>
       </div>
-      <div>
-        <button class="btn-primary" onclick="refreshInboxes()" id="btnRefresh">
+      <div style="display:flex; gap:12px; align-items:center;">
+        <div class="dropdown">
+          <button class="btn-secondary" onclick="toggleDropdown('bulkActions')">
+            <i data-lucide="trash-2" class="icon-sm text-danger"></i> Bulk Cleanup <i data-lucide="chevron-down" class="icon-sm"></i>
+          </button>
+          <div class="dropdown-menu" id="bulkActions" style="right:0;">
+            <button onclick="bulkDelete('empty')"><i data-lucide="mail-x"></i> Delete all empty inboxes</button>
+            <button onclick="promptBulkDeleteOlderThan()"><i data-lucide="calendar-off"></i> Delete older than N days...</button>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="location.reload()">
           <i data-lucide="refresh-cw" class="icon-sm"></i> Refresh
         </button>
       </div>
     </div>
 
-    <div class="stats-grid">
+    <div class="stats-grid" style="margin-bottom: 24px;">
       ${StatCard({ label: 'Total Inboxes', value: totalInboxes })}
-      ${StatCard({ label: 'Total Messages Received', value: totalMessages })}
+      ${StatCard({ label: 'Total Messages', value: totalMessages })}
+      ${StatCard({ label: 'Matches Filter', value: filteredTotal, icon: 'filter', color: '#a78bfa' })}
     </div>
 
-    ${Panel({ title: 'Generated Inboxes', icon: 'list', children: html`
+    <div class="panel" style="margin-bottom: 24px; padding: 16px;">
+      <form action="/admin/inboxes" method="GET" style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 200px;">
+          <input type="text" name="q" value="${escape(search)}" placeholder="Search by address or domain..." style="width: 100%;" />
+        </div>
+        <select name="messages" style="min-width: 160px;">
+          <option value="all" ${messageFilter === 'all' ? 'selected' : ''}>All Inboxes</option>
+          <option value="empty" ${messageFilter === 'empty' ? 'selected' : ''}>Empty Only (0 msgs)</option>
+          <option value="has-messages" ${messageFilter === 'has-messages' ? 'selected' : ''}>Has Messages (>0 msgs)</option>
+        </select>
+        <button type="submit" class="btn-primary">Filter</button>
+        ${search || messageFilter !== 'all' ? html`<a href="/admin/inboxes" class="btn-secondary">Clear</a>` : ''}
+      </form>
+    </div>
+
+    ${Panel({ title: 'Inbox Results', icon: 'list', children: html`
       <div id="inboxListContainer">
         <div class="inbox-list">
-          ${inboxes.length === 0 ? html`<p style="color:var(--text-dim);text-align:center;padding:20px">No inboxes yet.</p>` : ''}
+          ${inboxes.length === 0 ? html`<div class="widget-empty"><i data-lucide="search-x"></i><p>No inboxes found matching the criteria.</p></div>` : ''}
           ${inboxes.map(i => html`
             <div class="inbox-item" id="row-${i.address}">
               <div class="inbox-info">
@@ -55,7 +88,7 @@ export function InboxesListPage({
 
         ${totalPages > 1 ? html`
         <div style="display:flex; justify-content:center; align-items:center; gap:16px; margin-top:24px; padding-top:16px; border-top:1px solid var(--border)">
-          <a href="${baseUrl}?page=${currentPage - 1}" class="btn-primary" style="${currentPage <= 1 ? 'pointer-events:none;opacity:0.5' : ''}">
+          <a href="${baseUrl}?page=${currentPage - 1}${qs}" class="btn-primary" style="${currentPage <= 1 ? 'pointer-events:none;opacity:0.5' : ''}">
             <i data-lucide="chevron-left" class="icon-inline"></i> Prev
           </a>
           
@@ -63,7 +96,7 @@ export function InboxesListPage({
             Page <strong>${currentPage}</strong> of ${totalPages}
           </span>
           
-          <a href="${baseUrl}?page=${currentPage + 1}" class="btn-primary" style="${currentPage >= totalPages ? 'pointer-events:none;opacity:0.5' : ''}">
+          <a href="${baseUrl}?page=${currentPage + 1}${qs}" class="btn-primary" style="${currentPage >= totalPages ? 'pointer-events:none;opacity:0.5' : ''}">
             Next <i data-lucide="chevron-right" class="icon-inline" style="margin-left:8px; margin-right:0"></i>
           </a>
         </div>
@@ -72,39 +105,57 @@ export function InboxesListPage({
     `})}
 
     <script>
-      function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.textContent = msg; t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 3000);
+      function escapeHtml(s) {
+        return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       }
 
-      async function refreshInboxes() {
-        const btn = document.getElementById('btnRefresh');
-        const icon = btn.querySelector('i');
-        btn.disabled = true;
-        icon.classList.add('spin-anim'); // assume you have this css, or we fallback to reload
-        
-        try {
-          // Soft-refresh the list container via AJAX
-          const res = await fetch(window.location.href);
-          const html = await res.text();
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          
-          const newContainer = doc.getElementById('inboxListContainer');
-          if(newContainer) {
-            document.getElementById('inboxListContainer').innerHTML = newContainer.innerHTML;
-            lucide.createIcons(); // re-init icons
-            showToast('List refreshed');
-          } else {
-            location.reload();
-          }
-        } catch(e) {
-          location.reload();
-        } finally {
-          btn.disabled = false;
-          icon.classList.remove('spin-anim');
+      function toggleDropdown(id) {
+        const menu = document.getElementById(id);
+        if (!menu) return;
+        const isShow = menu.classList.toggle('show');
+        if (isShow) {
+          setTimeout(() => {
+            document.addEventListener('click', function closeMenu(e) {
+              if (!menu.contains(e.target) && !e.target.closest('.dropdown')) {
+                menu.classList.remove('show');
+                document.removeEventListener('click', closeMenu);
+              }
+            });
+          }, 10);
         }
+      }
+
+      async function bulkDelete(mode, days) {
+        const label = mode === 'empty' ? 'all empty inboxes' : 'inboxes older than ' + days + ' days';
+        confirmAction('Bulk Delete Inboxes', 'Are you sure you want to delete ' + label + '? This action cannot be undone.', 'Delete All', async function() {
+          try {
+            const res = await fetch('/dashboard/inboxes/bulk-delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ mode, days })
+            });
+            const data = await res.json();
+            if (data.ok) {
+              showToast('Deleted ' + data.deleted + ' inbox(es)');
+              setTimeout(() => location.reload(), 800);
+            } else {
+              showToast(data.error || 'Failed to delete');
+            }
+          } catch (e) {
+            showToast('Bulk delete failed');
+          }
+        });
+      }
+
+      function promptBulkDeleteOlderThan() {
+        const input = prompt('Delete inboxes created more than N days ago (enter 1 to 365):', '7');
+        if (!input) return;
+        const days = parseInt(input, 10);
+        if (isNaN(days) || days < 1 || days > 365) {
+          alert('Please enter a valid number of days between 1 and 365.');
+          return;
+        }
+        bulkDelete('older-than', days);
       }
 
       async function del(addr) {

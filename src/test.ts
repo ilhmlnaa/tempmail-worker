@@ -215,4 +215,21 @@ import { LandingPage } from './web/landing'
   console.log('PASS: landing browser script syntax')
 }
 
+// ─── 10. Admin Inbox and 404 Browser Templates ────────────────────
+
+import { InboxesListPage } from './web/inboxes-list'
+import { NotFoundPage } from './web/not-found'
+
+{
+  const inboxPage = String(InboxesListPage({
+    inboxes: [], totalInboxes: 0, totalMessages: 0, filteredTotal: 0,
+    currentPage: 1, search: '', messageFilter: 'all',
+  }))
+  const script = inboxPage.match(/<script>([\s\S]*?)<\/script>\s*<style>/)
+  console.assert(!!script, 'admin inbox inline script found')
+  new Function(script?.[1] || '')
+  console.assert(String(NotFoundPage({})).includes('404'), 'not-found page renders status')
+  console.log('PASS: admin inbox and 404 templates')
+}
+
 console.log('\nAll checks passed.')
