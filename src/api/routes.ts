@@ -1,8 +1,10 @@
 import { Hono } from 'hono'
-import { cors } from 'hono/cors'
 import type { Env } from '../db/queries'
 import { isValidSession, isEmailLinkedToSession, getEmailRecord, deleteEmail } from '../db/queries'
-import { requireAuth, hashApiKey } from './auth'
+import { getPublicSessionCookie, requireAuth, setPublicSessionCookie, hashApiKey } from './auth'
+import { clientIp, enforceRateLimits, RATE_LIMITS } from '../security/rateLimit'
+import { sanitizeHtmlEmail } from '../email/sanitizer'
+
 import {
   createEmail, getMessages, emailExists, createSession,
   linkEmailToSession, unlinkEmailFromSession, getAllEmails,
@@ -22,22 +24,44 @@ function randomString(len = 10): string {
   return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
-api.get('/api/session', async (c) => {
-  const reqSid = c.req.header('x-session-id')
-  const sid = reqSid || crypto.randomUUID()
+async function getOrCreatePublicSession(c: Parameters<typeof getPublicSessionCookie>[0]): Promise<string> {
+  const sid = getPublicSessionCookie(c) || crypto.randomUUID()
   await createSession(c.env.DB, sid)
-  return c.json({ sessionId: sid, expiresAt: new Date(Date.now() + 86400_000).toISOString() })
+  if (!getPublicSessionCookie(c)) setPublicSessionCookie(c, sid)
+  return sid
+}
+
+api.get('/api/session', async (c) => {
+  const limited = await enforceRateLimits(c, [
+    { rule: RATE_LIMITS.sessionByIp, identifier: clientIp(c) },
+  ])
+  if (limited) return limited
+
+  await getOrCreatePublicSession(c)
+  return c.json({ expiresAt: new Date(Date.now() + 2592000000).toISOString() })
 })
 
 api.post('/api/session', async (c) => {
-  const reqSid = c.req.header('x-session-id')
-  const sid = reqSid || crypto.randomUUID()
-  await createSession(c.env.DB, sid)
-  return c.json({ sessionId: sid, expiresAt: new Date(Date.now() + 86400_000).toISOString() })
+  const limited = await enforceRateLimits(c, [
+    { rule: RATE_LIMITS.sessionByIp, identifier: clientIp(c) },
+  ])
+  if (limited) return limited
+
+  await getOrCreatePublicSession(c)
+  return c.json({ expiresAt: new Date(Date.now() + 2592000000).toISOString() })
+})
+
+api.get('/api/session/inboxes', async (c) => {
+  const sid = getPublicSessionCookie(c)
+  if (!sid || !(await isValidSession(c.env.DB, sid))) return c.json([])
+  const { getSessionEmails } = await import('../db/queries')
+  return c.json(await getSessionEmails(c.env.DB, sid))
 })
 
 api.post('/api/inboxes', async (c) => {
-  const sid = c.req.header('x-session-id')
+  const body = (await c.req.json().catch(() => ({}))) as { domain?: string; address?: string; turnstileToken?: string }
+  let count = 0
+  let sid: string | null = null
   const authHeader = c.req.header('Authorization')
   let apiKeyRecord = null
 
@@ -46,31 +70,54 @@ api.post('/api/inboxes', async (c) => {
     apiKeyRecord = await getApiKeyByValue(c.env.DB, token)
     if (!apiKeyRecord) return c.json({ error: 'Invalid API Key' }, 401)
   } else {
-    if (!sid) {
-      return c.json({ error: 'Session ID or API Key required' }, 401)
+    const ipChecks: import('../security/rateLimit').RateLimitCheck[] = [
+      { rule: RATE_LIMITS.inboxByIp, identifier: clientIp(c) },
+    ]
+    if (!body.turnstileToken) {
+      ipChecks.unshift({ rule: RATE_LIMITS.inboxCooldownByIp, identifier: clientIp(c) })
     }
-    await createSession(c.env.DB, sid)
+    const limited = await enforceRateLimits(c, ipChecks)
+    if (limited) return limited
 
     const publicEnabled = await getSetting(c.env.DB, 'public_tempmail_enabled', 'enabled')
     if (publicEnabled === 'disabled') {
       return c.json({ error: 'Public temporary email creation is currently disabled by administrator.' }, 403)
     }
 
+    sid = await getOrCreatePublicSession(c)
+    const { getSessionInboxCount } = await import('../db/queries')
+    count = await getSessionInboxCount(c.env.DB, sid)
+    
     const maxPublicInboxes = parseInt(await getSetting(c.env.DB, 'public_max_inboxes_per_session', '5'), 10)
-    if (maxPublicInboxes > 0) {
-      const { getSessionInboxCount } = await import('../db/queries')
-      const count = await getSessionInboxCount(c.env.DB, sid)
-      if (count >= maxPublicInboxes) {
-        return c.json({ error: `Public inbox limit reached (max: ${maxPublicInboxes} per session)` }, 429)
-      }
+    if (maxPublicInboxes > 0 && count >= maxPublicInboxes) {
+      return c.json({ error: `Public inbox limit reached (max: ${maxPublicInboxes} per session)` }, 429)
     }
   }
 
-  const body = (await c.req.json().catch(() => ({}))) as { domain?: string; address?: string }
   const domains = (await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')).split(',').map(d => d.trim())
   let domain = (body.domain && domains.includes(body.domain)) ? body.domain : (domains[0] || 'voidmail.my.id')
 
   if (!apiKeyRecord) {
+    const { isTurnstileEnabled, requiresTurnstile, verifyTurnstileToken } = await import('../security/turnstile')
+    if (isTurnstileEnabled(c.env) && requiresTurnstile(count)) {
+      if (!body.turnstileToken || !(await verifyTurnstileToken(c, body.turnstileToken))) {
+        return c.json({ error: 'Please complete the captcha to create more inboxes.', requireCaptcha: true }, 403)
+      }
+    }
+  }
+
+  if (!apiKeyRecord) {
+    const sessionChecks: import('../security/rateLimit').RateLimitCheck[] = [
+      { rule: RATE_LIMITS.inboxBySession, identifier: sid! },
+      { rule: RATE_LIMITS.inboxByDomain, identifier: domain },
+      { rule: RATE_LIMITS.inboxGlobal, identifier: 'global' },
+    ]
+    if (!body.turnstileToken) {
+      sessionChecks.unshift({ rule: RATE_LIMITS.inboxCooldownBySession, identifier: sid! })
+    }
+    const limited = await enforceRateLimits(c, sessionChecks)
+    if (limited) return limited
+
     const publicAllowedDomainsStr = await getSetting(c.env.DB, 'public_allowed_domains', '*')
     if (publicAllowedDomainsStr !== '*') {
       const allowedPublicDomains = publicAllowedDomainsStr.split(',').map(d => d.trim()).filter(Boolean)
@@ -105,12 +152,15 @@ api.post('/api/inboxes', async (c) => {
     address = `${randomString(12)}@${domain}`
   }
 
+  if (!apiKeyRecord && await emailExists(c.env.DB, address)) {
+    return c.json({ error: 'This inbox address is already in use. Choose another address.' }, 409)
+  }
+
   await createEmail(c.env.DB, address, domain, apiKeyRecord ? apiKeyRecord.id : null)
 
-  if (sid) await linkEmailToSession(c.env.DB, sid, address)
-  
-  const dashSid = c.req.header('x-dashboard-sid')
-  if (dashSid) await linkEmailToSession(c.env.DB, dashSid, address)
+  if (sid && !(await linkEmailToSession(c.env.DB, sid, address))) {
+    return c.json({ error: 'This inbox address is already owned by another session.' }, 409)
+  }
 
   return c.json({ address })
 })
@@ -137,14 +187,31 @@ api.get('/api/inboxes/:addr/messages', async (c) => {
       }
     }
   } else {
-    const sid = c.req.header('x-session-id')
+    const sid = getPublicSessionCookie(c)
+    if (sid) {
+      const limited = await enforceRateLimits(c, [
+        { rule: RATE_LIMITS.messagesBySession, identifier: sid },
+        { rule: RATE_LIMITS.messagesByIp, identifier: clientIp(c) },
+      ])
+      if (limited) return limited
+    }
     allowed = !!sid && await isValidSession(c.env.DB, sid) && await isEmailLinkedToSession(c.env.DB, sid, email)
   }
   
   if (!allowed) return c.json({ error: 'Forbidden' }, 403)
 
   const msgs = await getMessages(c.env.DB, email)
-  return c.json(msgs)
+  const allowExternalImages = c.req.query('images') === 'proxy'
+  const sanitizedMessages = msgs.map((message: any) => ({
+    ...message,
+    html: message.html
+      ? sanitizeHtmlEmail(message.html, {
+          allowExternalImages,
+          imgCdnBaseUrl: c.env.IMGCDN_BASE_URL,
+        })
+      : null,
+  }))
+  return c.json(sanitizedMessages)
 })
 
 api.delete('/api/inboxes/:addr', async (c) => {
@@ -157,7 +224,7 @@ api.delete('/api/inboxes/:addr', async (c) => {
     await deleteEmail(c.env.DB, addr)
     return c.json({ ok: true })
   }
-  const sid = c.req.header('x-session-id')
+  const sid = getPublicSessionCookie(c)
   if (!sid || !(await isValidSession(c.env.DB, sid)) || !(await isEmailLinkedToSession(c.env.DB, sid, addr))) {
     return c.json({ error: 'Forbidden' }, 403)
   }
