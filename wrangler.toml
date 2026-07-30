@@ -20,6 +20,7 @@ MAIL_DOMAINS = "zenime.online,devnet.my.id"
 ALLOWED_ORIGINS = "https://voidmail.my.id"
 IMGCDN_BASE_URL = "https://imgcdn.arm.hamdiv.me"
 # Public key; set after creating a Cloudflare Turnstile widget.
-# TURNSTILE_SITE_KEY = "0x4AAAA..."
+TURNSTILE_SITE_KEY = "0x4AAAAAAEB4MuK-4_9gC3Hb"
 # Store TURNSTILE_SECRET_KEY with: npx wrangler secret put TURNSTILE_SECRET_KEY
-# SECURITY_CONTACT = "mailto:security@example.com"
+SECURITY_CONTACT = "mailto:security@hamdiv.me"
+SECURITY_POLICY_URL = "https://voidmail.my.id/security"
