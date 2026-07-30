@@ -1423,6 +1423,47 @@ svg.lucide { stroke-width: 2; }
   line-height: 1.6;
 }
 
+.hero-stats-row {
+  max-width: 880px;
+  margin: 0 auto 20px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.hero-stat-box {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  padding: 16px 18px;
+  text-align: left;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.hero-stat-box svg {
+  grid-row: 1 / 3;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  color: var(--primary);
+}
+
+.hero-stat-value {
+  color: var(--text);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.hero-stat-label {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  margin-top: 3px;
+}
+
 .hero-widget-card {
   max-width: 880px;
   margin: 0 auto;

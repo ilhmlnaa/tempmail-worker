@@ -14,7 +14,7 @@ import { Hono } from 'hono'
 import api from './api/routes'
 import { handleEmail } from './email/handler'
 import { requireAuth, setSessionCookie, clearSessionCookie, verifyPassword } from './api/auth'
-import { getSessionEmails, getAllEmails, linkEmailToSession, createSession, getSetting, getDomainStats } from './db/queries'
+import { getSessionEmails, getAllEmails, linkEmailToSession, createSession, getSetting, getDomainStats, getAppMetrics, deleteEmptyEmails, deleteOldEmails, updateSetting } from './db/queries'
 import { LoginPage } from './web/login'
 import { LandingPage } from './web/landing'
 import { DashboardPage } from './web/dashboard'
@@ -112,7 +112,11 @@ app.get('/', async (c) => {
     domains = domains.filter(d => allowed.includes(d))
     if (domains.length === 0 && domainsStr) domains = [domainsStr.split(',')[0].trim()]
   }
-  return c.html(LandingPage({ domains, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || '' }))
+  const metrics = await getAppMetrics(c.env.DB)
+  const retentionHours = parseInt(await getSetting(c.env.DB, 'cleanup_retention_hours', '24'), 10)
+  const timezone = await getSetting(c.env.DB, 'timezone', 'Asia/Jakarta')
+  const timeFormat = await getSetting(c.env.DB, 'time_format', '24')
+  return c.html(LandingPage({ domains, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || '', metrics, retentionHours, timezone, timeFormat }))
 })
 
 // ── Auth pages ────────────────────────────────────────────────
@@ -206,17 +210,20 @@ app.get('/admin', async (c) => {
     const limit = 20
     const offset = (page - 1) * limit
 
-    const { getSetting, getApiKeys, getAllEmails, getDomainStats } = await import('./db/queries')
+    const { getSetting, getApiKeys, getAllEmails, getDomainStats, getAppMetrics } = await import('./db/queries')
     const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')
     const domains = domainsStr.split(',').map(d => d.trim()).filter(Boolean)
     
     const { total, totalMessages, emails: inboxes } = await getAllEmails(c.env.DB, limit, offset); 
     const apiKeys = await getApiKeys(c.env.DB)
     const domainStats = await getDomainStats(c.env.DB)
+    const metrics = await getAppMetrics(c.env.DB)
+    const timezone = await getSetting(c.env.DB, 'timezone', 'Asia/Jakarta')
+    const timeFormat = await getSetting(c.env.DB, 'time_format', '24')
 
     return c.html(DashboardPage({
       inboxes: inboxes as any[], apiKeys: apiKeys as any[],
-      domains, domainStats, totalInboxes: total, totalMessages, currentPage: page,
+      domains, domainStats, totalInboxes: total, totalMessages, currentPage: page, metrics, timezone, timeFormat,
     }))
   } catch (err: any) {
     console.error('[admin] error:', err?.message)
@@ -235,13 +242,29 @@ app.get('/admin/settings', async (c) => {
   const publicEnabled = await getSetting(c.env.DB, 'public_tempmail_enabled', 'enabled')
   const publicMaxInboxes = parseInt(await getSetting(c.env.DB, 'public_max_inboxes_per_session', '5'), 10)
   const publicAllowedDomains = await getSetting(c.env.DB, 'public_allowed_domains', '*')
+  const cleanupEnabled = await getSetting(c.env.DB, 'cleanup_enabled', 'enabled')
+  const cleanupScope = await getSetting(c.env.DB, 'cleanup_scope', 'public')
+  const cleanupEmptyHours = parseInt(await getSetting(c.env.DB, 'cleanup_empty_hours', '6'), 10)
+  const cleanupRetentionHours = parseInt(await getSetting(c.env.DB, 'cleanup_retention_hours', '24'), 10)
+  const timezone = await getSetting(c.env.DB, 'timezone', 'Asia/Jakarta')
+  const timeFormat = await getSetting(c.env.DB, 'time_format', '24')
+  const lastCleanupAt = await getSetting(c.env.DB, 'cleanup_last_at', '')
+  const lastCleanupDeleted = parseInt(await getSetting(c.env.DB, 'cleanup_last_deleted', '0'), 10)
   
   return c.html(SettingsPage({ 
     domains: domainsStr, 
     hasAuthSecret: true,
     publicEnabled,
     publicMaxInboxes,
-    publicAllowedDomains
+    publicAllowedDomains,
+    cleanupEnabled,
+    cleanupScope,
+    cleanupEmptyHours,
+    cleanupRetentionHours,
+    timezone,
+    timeFormat,
+    lastCleanupAt,
+    lastCleanupDeleted
   }))
 })
 
@@ -266,6 +289,8 @@ app.get('/admin/inboxes', async (c) => {
     const stats = await getAllEmails(c.env.DB, 1, 0)
     const filtered = await searchEmails(c.env.DB, search, messageFilter, limit, offset)
 
+    const timezone = await getSetting(c.env.DB, 'timezone', 'Asia/Jakarta')
+    const timeFormat = await getSetting(c.env.DB, 'time_format', '24')
     return c.html(InboxesListPage({
       inboxes: filtered.emails as any[],
       totalInboxes: stats.total,
@@ -274,6 +299,8 @@ app.get('/admin/inboxes', async (c) => {
       currentPage: page,
       search,
       messageFilter,
+      timezone,
+      timeFormat,
     }))
   } catch (err: any) {
     console.error('[inboxes] error:', err?.message)
@@ -290,7 +317,9 @@ app.get('/admin/inbox/:addr', async (c) => {
   const { getMessages } = await import('./db/queries')
   const msgs = await getMessages(c.env.DB, addr)
 
-  return c.html(InboxPage({ address: addr, messages: msgs as any[] }))
+  const timezone = await getSetting(c.env.DB, 'timezone', 'Asia/Jakarta')
+  const timeFormat = await getSetting(c.env.DB, 'time_format', '24')
+  return c.html(InboxPage({ address: addr, messages: msgs as any[], timezone, timeFormat }))
 })
 
 app.notFound((c) => {
@@ -309,5 +338,16 @@ export default {
 
   async email(message: ForwardableEmailMessage, env: Env, _ctx: ExecutionContext): Promise<void> {
     await handleEmail(message, env)
+  },
+
+  async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+    if (await getSetting(env.DB, 'cleanup_enabled', 'enabled') !== 'enabled') return
+    const scope = await getSetting(env.DB, 'cleanup_scope', 'public') === 'all' ? 'all' : 'public'
+    const emptyHours = parseInt(await getSetting(env.DB, 'cleanup_empty_hours', '6'), 10)
+    const retentionHours = parseInt(await getSetting(env.DB, 'cleanup_retention_hours', '24'), 10)
+    const deletedEmpty = await deleteEmptyEmails(env.DB, scope, emptyHours)
+    const deletedOld = await deleteOldEmails(env.DB, scope, retentionHours)
+    await updateSetting(env.DB, 'cleanup_last_at', new Date().toISOString())
+    await updateSetting(env.DB, 'cleanup_last_deleted', String(deletedEmpty + deletedOld))
   },
 }

@@ -3,14 +3,21 @@ import { Layout } from './layout'
 import { Panel, StatCard, IconButton } from './components'
 import type { Inbox } from '../db/queries'
 
+function formatDate(value: string, timezone: string, timeFormat: string): string {
+  return new Date(value.endsWith('Z') ? value : `${value}Z`).toLocaleString('en-GB', {
+    timeZone: timezone,
+    hour12: timeFormat === '12',
+  })
+}
+
 function escape(s: string): string {
   return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
 }
 
 export function InboxesListPage({ 
-  inboxes, totalInboxes, totalMessages, filteredTotal, currentPage, search, messageFilter 
+  inboxes, totalInboxes, totalMessages, filteredTotal, currentPage, search, messageFilter, timezone = 'Asia/Jakarta', timeFormat = '24'
 }: { 
-  inboxes: Inbox[]; totalInboxes: number; totalMessages: number; filteredTotal: number; currentPage: number; search: string; messageFilter: 'all' | 'empty' | 'has-messages'
+  inboxes: Inbox[]; totalInboxes: number; totalMessages: number; filteredTotal: number; currentPage: number; search: string; messageFilter: 'all' | 'empty' | 'has-messages'; timezone?: string; timeFormat?: string
 }) {
   const totalPages = Math.ceil(filteredTotal / 20) || 1
   const baseUrl = '/admin/inboxes'
@@ -73,7 +80,7 @@ export function InboxesListPage({
             <div class="inbox-item" id="row-${i.address}">
               <div class="inbox-info">
                 <h4><a href="/admin/inbox/${encodeURIComponent(i.address)}">${i.address}</a></h4>
-                <p>Created: ${new Date(i.createdAt).toLocaleString()}</p>
+                <p>Created: ${formatDate(i.createdAt, timezone, timeFormat)}</p>
               </div>
               <div class="inbox-meta">
                 <span class="badge">${i.messageCount || 0} msgs</span>

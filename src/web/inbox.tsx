@@ -18,7 +18,7 @@ function decodeQP(str: string): string {
     .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
 }
 
-export function InboxPage({ address, messages }: { address: string; messages: Message[] }) {
+export function InboxPage({ address, messages, timezone = 'Asia/Jakarta', timeFormat = '24' }: { address: string; messages: Message[]; timezone?: string; timeFormat?: string }) {
   return Layout({
     title: address,
     session: true,
@@ -64,7 +64,7 @@ export function InboxPage({ address, messages }: { address: string; messages: Me
             </div>
           </div>
           <div class="msg-toggle">
-            <span class="text-dim" style="font-size:0.75rem;white-space:nowrap">${formatDate(msg.createdAt)}</span>
+            <span class="text-dim" style="font-size:0.75rem;white-space:nowrap">${formatDate(msg.createdAt, timezone, timeFormat)}</span>
             <span class="badge" id="badge-${i}">New</span>
             <i data-lucide="chevron-down" id="chevron-${i}" class="icon-sm" style="transition:transform 0.2s"></i>
           </div>
@@ -157,7 +157,12 @@ function escape(s: string): string {
   return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
 }
 
-function formatDate(d: string): string {
-  try { return new Date(d + 'Z').toLocaleString() } catch (err) { return d }
+function formatDate(d: string, timezone = 'Asia/Jakarta', timeFormat = '24'): string {
+  try { 
+    return new Date(d.endsWith('Z') ? d : `${d}Z`).toLocaleString('en-GB', {
+      timeZone: timezone,
+      hour12: timeFormat === '12'
+    }) 
+  } catch (err) { return d }
 }
 

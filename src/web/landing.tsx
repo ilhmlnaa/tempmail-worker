@@ -1,6 +1,6 @@
 import { html, raw } from 'hono/html'
 
-export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; turnstileSiteKey: string }) {
+export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours, timezone, timeFormat }: { domains: string[]; turnstileSiteKey: string; metrics: { lifetimeInboxes: number; lifetimeMessages: number }; retentionHours: number; timezone: string; timeFormat: string }) {
   const primaryDomain = domains[0] || 'voidmail.my.id'
 
   return html`<!DOCTYPE html>
@@ -70,6 +70,24 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
       </p>
 
       <!-- Instant Temp Mail Generator Widget -->
+      <div class="hero-stats-row">
+        <div class="hero-stat-box">
+          <i data-lucide="globe"></i>
+          <div class="hero-stat-value">${domains.length}</div>
+          <div class="hero-stat-label">Active Domains</div>
+        </div>
+        <div class="hero-stat-box">
+          <i data-lucide="mail"></i>
+          <div class="hero-stat-value">${metrics.lifetimeMessages.toLocaleString()}</div>
+          <div class="hero-stat-label">Messages Received</div>
+        </div>
+        <div class="hero-stat-box">
+          <i data-lucide="clock"></i>
+          <div class="hero-stat-value">${retentionHours}h</div>
+          <div class="hero-stat-label">Email Retention</div>
+        </div>
+      </div>
+
       <div class="hero-widget-card" id="generator">
         <div class="widget-header">
           <div class="widget-header-title">
@@ -342,12 +360,24 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
     }
 
     function formatShortDate(d) {
-      try { return new Date(d + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+      try { 
+        return new Date(d + 'Z').toLocaleTimeString([], { 
+          timeZone: '${timezone}', 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: ${timeFormat === '12' ? 'true' : 'false'}
+        }); 
+      }
       catch (e) { return ''; }
     }
 
     function formatFullDate(d) {
-      try { return new Date(d + 'Z').toLocaleString(); } catch (e) { return d || ''; }
+      try { 
+        return new Date(d + 'Z').toLocaleString([], {
+          timeZone: '${timezone}',
+          hour12: ${timeFormat === '12' ? 'true' : 'false'}
+        }); 
+      } catch (e) { return d || ''; }
     }
 
     function setStatus(text) {
@@ -453,11 +483,12 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
       }
       container.innerHTML = inboxesList.map(inbox => {
         const isActive = inbox.address === currentPublicEmail;
+        const unread = Math.max(0, inbox.messageCount - (inbox.readCount || 0));
         return \`
           <button class="inbox-sidebar-item \${isActive ? 'active' : ''}" onclick="switchInbox('\${inbox.address}')">
             <i data-lucide="\${isActive ? 'mail-open' : 'mail'}"></i>
             <span class="inbox-addr">\${escapeHtml(inbox.address)}</span>
-            \${inbox.messageCount > 0 ? \`<span class="badge" style="font-size:0.7rem">\${inbox.messageCount}</span>\` : ''}
+            \${unread > 0 ? \`<span class="badge" style="font-size:0.7rem">\${unread}</span>\` : ''}
           </button>
         \`;
       }).join('');
@@ -669,6 +700,11 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
     function openMessage(i) {
       const m = widgetMessages[i];
       if (!m) return;
+      const targetInbox = inboxesList.find(inb => inb.address === currentPublicEmail);
+      if (targetInbox && (targetInbox.readCount || 0) < targetInbox.messageCount) {
+        targetInbox.readCount = targetInbox.messageCount;
+        renderInboxesSidebar();
+      }
 
       const senderName = (m.from || '').replace(/<.*>/, '').trim().replace(/"/g, '') || m.from || 'Unknown';
       const senderEmail = ((m.from || '').match(/<(.+)>/) || [null, m.from || ''])[1];

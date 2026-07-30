@@ -7,13 +7,29 @@ export function SettingsPage({
   hasAuthSecret,
   publicEnabled = 'enabled',
   publicMaxInboxes = 5,
-  publicAllowedDomains = '*'
+  publicAllowedDomains = '*',
+  cleanupEnabled = 'enabled',
+  cleanupScope = 'public',
+  cleanupEmptyHours = 6,
+  cleanupRetentionHours = 24,
+  timezone = 'Asia/Jakarta',
+  timeFormat = '24',
+  lastCleanupAt = '',
+  lastCleanupDeleted = 0
 }: { 
   domains: string; 
   hasAuthSecret: boolean;
   publicEnabled?: string;
   publicMaxInboxes?: number;
   publicAllowedDomains?: string;
+  cleanupEnabled?: string;
+  cleanupScope?: string;
+  cleanupEmptyHours?: number;
+  cleanupRetentionHours?: number;
+  timezone?: string;
+  timeFormat?: string;
+  lastCleanupAt?: string;
+  lastCleanupDeleted?: number;
 }) {
   const initialDomains = domains.split(',').map(d => d.trim()).filter(Boolean)
 
@@ -102,6 +118,92 @@ export function SettingsPage({
         <div>
           <button type="submit" class="btn-primary" id="btnSavePublicCfg">
             <i data-lucide="shield-check" class="icon-sm"></i> Save Public Settings
+          </button>
+        </div>
+      </form>
+    `})}
+
+    ${Panel({ title: 'Automatic Retention & Auto Cleanup', icon: 'trash-2', children: html`
+      <p style="color:var(--text-dim);font-size:0.9rem;margin-bottom:20px">
+        Configure background cron tasks for purging expired inboxes and stale messages automatically.
+      </p>
+
+      <form id="cleanupSettingsForm" onsubmit="updateCleanupSettings(event)">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+          <div style="flex:1;min-width:220px">
+            <label style="font-size:0.85rem;color:var(--text-dim);display:block;margin-bottom:6px">Auto Cleanup Job</label>
+            <select id="cfg_cleanup_enabled" style="width:100%">
+              <option value="enabled" ${cleanupEnabled === 'enabled' ? 'selected' : ''}>Enabled (Runs hourly)</option>
+              <option value="disabled" ${cleanupEnabled === 'disabled' ? 'selected' : ''}>Disabled</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:220px">
+            <label style="font-size:0.85rem;color:var(--text-dim);display:block;margin-bottom:6px">Cleanup Scope Target</label>
+            <select id="cfg_cleanup_scope" style="width:100%">
+              <option value="public" ${cleanupScope === 'public' ? 'selected' : ''}>Public & Inbound Only (Safest)</option>
+              <option value="all" ${cleanupScope === 'all' ? 'selected' : ''}>All Inboxes (Include Admin/API)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+          <div style="flex:1;min-width:220px">
+            <label style="font-size:0.85rem;color:var(--text-dim);display:block;margin-bottom:6px">Empty Inbox Purge (Hours)</label>
+            <input type="number" id="cfg_cleanup_empty" min="1" max="8760" value="${cleanupEmptyHours}" style="width:100%" />
+          </div>
+          <div style="flex:1;min-width:220px">
+            <label style="font-size:0.85rem;color:var(--text-dim);display:block;margin-bottom:6px">Public Inbox Retention (Hours)</label>
+            <input type="number" id="cfg_cleanup_retention" min="1" max="8760" value="${cleanupRetentionHours}" style="width:100%" />
+          </div>
+        </div>
+
+        <div style="background:rgba(11,15,25,0.7);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em">Last Auto Cleanup Run</div>
+            <div style="font-weight:600;font-size:0.95rem;color:var(--text);margin-top:4px">
+              ${lastCleanupAt ? `${new Date(lastCleanupAt).toLocaleString()} (${lastCleanupDeleted} deleted)` : 'No cleanup runs recorded yet'}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <button type="submit" class="btn-primary" id="btnSaveCleanupCfg">
+            <i data-lucide="check" class="icon-sm"></i> Save Cleanup Settings
+          </button>
+        </div>
+      </form>
+    `})}
+
+    ${Panel({ title: 'Date & Timezone Preferences', icon: 'clock', children: html`
+      <p style="color:var(--text-dim);font-size:0.9rem;margin-bottom:20px">
+        Set your operational timezone and preferred clock format for timestamps rendered across dashboard & public pages.
+      </p>
+
+      <form id="timeSettingsForm" onsubmit="updateTimeSettings(event)">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+          <div style="flex:1;min-width:220px">
+            <label style="font-size:0.85rem;color:var(--text-dim);display:block;margin-bottom:6px">Timezone (IANA)</label>
+            <select id="cfg_timezone" style="width:100%">
+              <option value="Asia/Jakarta" ${timezone === 'Asia/Jakarta' ? 'selected' : ''}>Asia/Jakarta (WIB)</option>
+              <option value="Asia/Makassar" ${timezone === 'Asia/Makassar' ? 'selected' : ''}>Asia/Makassar (WITA)</option>
+              <option value="Asia/Jayapura" ${timezone === 'Asia/Jayapura' ? 'selected' : ''}>Asia/Jayapura (WIT)</option>
+              <option value="UTC" ${timezone === 'UTC' ? 'selected' : ''}>UTC</option>
+              <option value="America/New_York" ${timezone === 'America/New_York' ? 'selected' : ''}>America/New_York (EST)</option>
+              <option value="Europe/London" ${timezone === 'Europe/London' ? 'selected' : ''}>Europe/London (GMT)</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:220px">
+            <label style="font-size:0.85rem;color:var(--text-dim);display:block;margin-bottom:6px">Clock Display Format</label>
+            <select id="cfg_time_format" style="width:100%">
+              <option value="24" ${timeFormat === '24' ? 'selected' : ''}>24-hour (14:30)</option>
+              <option value="12" ${timeFormat === '12' ? 'selected' : ''}>12-hour AM/PM (2:30 PM)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <button type="submit" class="btn-primary" id="btnSaveTimeCfg">
+            <i data-lucide="clock" class="icon-sm"></i> Save Time Settings
           </button>
         </div>
       </form>
@@ -434,6 +536,73 @@ export function SettingsPage({
         } finally {
           btn.disabled = false;
           btn.innerHTML = '<i data-lucide="shield-check" class="icon-sm"></i> Save Public Settings';
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+
+      async function updateCleanupSettings(e) {
+        e.preventDefault();
+        const enabled = document.getElementById('cfg_cleanup_enabled').value;
+        const scope = document.getElementById('cfg_cleanup_scope').value;
+        const emptyHours = document.getElementById('cfg_cleanup_empty').value;
+        const retentionHours = document.getElementById('cfg_cleanup_retention').value;
+
+        const btn = document.getElementById('btnSaveCleanupCfg');
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm spin-anim"></i> Saving Cleanup Settings...';
+        if (window.lucide) lucide.createIcons();
+
+        try {
+          const res = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              cleanup_enabled: enabled,
+              cleanup_scope: scope,
+              cleanup_empty_hours: emptyHours,
+              cleanup_retention_hours: retentionHours
+            })
+          });
+          if (res.ok) {
+            showToast('Cleanup settings updated successfully!');
+          } else {
+            showToast('Failed to update cleanup settings', true);
+          }
+        } catch (err) {
+          showToast('Failed to update cleanup settings', true);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="check" class="icon-sm"></i> Save Cleanup Settings';
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+
+      async function updateTimeSettings(e) {
+        e.preventDefault();
+        const tz = document.getElementById('cfg_timezone').value;
+        const fmt = document.getElementById('cfg_time_format').value;
+
+        const btn = document.getElementById('btnSaveTimeCfg');
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm spin-anim"></i> Saving Time Settings...';
+        if (window.lucide) lucide.createIcons();
+
+        try {
+          const res = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ timezone: tz, time_format: fmt })
+          });
+          if (res.ok) {
+            showToast('Timezone settings updated successfully!');
+          } else {
+            showToast('Failed to update time settings', true);
+          }
+        } catch (err) {
+          showToast('Failed to update time settings', true);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="clock" class="icon-sm"></i> Save Time Settings';
           if (window.lucide) lucide.createIcons();
         }
       }

@@ -3,10 +3,17 @@ import { Layout } from './layout'
 import { Panel, StatCard, IconButton, AnalyticsChartsGrid, DomainShowcaseWidget } from './components'
 import type { Inbox } from '../db/queries'
 
+function formatDate(value: string, timezone: string, timeFormat: string): string {
+  return new Date(value.endsWith('Z') ? value : `${value}Z`).toLocaleString('en-GB', {
+    timeZone: timezone,
+    hour12: timeFormat === '12',
+  })
+}
+
 export function DashboardPage({ 
-  inboxes, domains, apiKeys, totalInboxes, totalMessages, currentPage, apiKeyFilter, domainStats = {}
+  inboxes, domains, apiKeys, totalInboxes, totalMessages, currentPage, apiKeyFilter, domainStats = {}, metrics, timezone = 'Asia/Jakarta', timeFormat = '24'
 }: { 
-  inboxes: Inbox[]; domains: string[]; apiKeys: any[]; totalInboxes: number; totalMessages: number; currentPage: number; apiKeyFilter?: any; domainStats?: Record<string, number>
+  inboxes: Inbox[]; domains: string[]; apiKeys: any[]; totalInboxes: number; totalMessages: number; currentPage: number; apiKeyFilter?: any; domainStats?: Record<string, number>; metrics?: { lifetimeInboxes: number; lifetimeMessages: number }; timezone?: string; timeFormat?: string
 }) {
   const totalPages = Math.ceil(totalInboxes / 20) || 1
   const baseUrl = apiKeyFilter ? `/dashboard/apikeys/${apiKeyFilter.id}` : '/dashboard'
@@ -43,6 +50,13 @@ export function DashboardPage({
       ${StatCard({ label: 'Active Domains', value: domains.length, subText: 'Supported Mail Suffixes', icon: 'globe', color: '#38bdf8' })}
       ${StatCard({ label: 'API Keys', value: apiKeys.length, subText: 'Issued Access Keys', icon: 'key', color: '#a78bfa' })}
     </div>
+
+    ${metrics ? html`
+      <div class="stats-grid" style="margin-top:16px">
+        ${StatCard({ label: 'Lifetime Inboxes', value: metrics.lifetimeInboxes, subText: 'Generated since launch', icon: 'inbox', color: '#60a5fa' })}
+        ${StatCard({ label: 'Lifetime Messages', value: metrics.lifetimeMessages, subText: 'Received since launch', icon: 'mail', color: '#34d399' })}
+      </div>
+    ` : ''}
 
     ${!apiKeyFilter ? html`
     <!-- SaaS Analytics & Distribution Charts -->

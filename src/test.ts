@@ -208,7 +208,7 @@ import { buildSecurityTxt } from './security/securityTxt'
 import { LandingPage } from './web/landing'
 
 {
-  const landingStr = String(LandingPage({ domains: ['mail.example.com'], turnstileSiteKey: 'test-site-key' }))
+  const landingStr = String(LandingPage({ domains: ['mail.example.com'], turnstileSiteKey: 'test-site-key', metrics: { lifetimeInboxes: 0, lifetimeMessages: 0 }, retentionHours: 24, timezone: 'UTC', timeFormat: '24' }))
   const match = landingStr.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/)
   console.assert(!!match, 'landing inline script found')
   new Function(match?.[1] || '')
