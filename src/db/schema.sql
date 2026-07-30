@@ -35,11 +35,17 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE TABLE IF NOT EXISTS session_emails (
   session_id    TEXT NOT NULL,
-  email_address TEXT NOT NULL,
+  email_address TEXT NOT NULL UNIQUE,
   linked_at     TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (session_id, email_address),
   FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
   FOREIGN KEY (email_address) REFERENCES emails(address) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS rate_limits (
+  key         TEXT PRIMARY KEY,
+  count       INTEGER NOT NULL DEFAULT 1,
+  reset_at    INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS settings (

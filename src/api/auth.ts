@@ -3,6 +3,7 @@ import type { Env } from '../db/queries'
 import { getSetting } from '../db/queries'
 
 const SESSION_COOKIE = 'tm_sid'
+const PUBLIC_SESSION_COOKIE = 'tm_pub_sid'
 
 export async function requireAuth(c: Context<{ Bindings: Env }>) {
   const sid = c.req.header('x-session-id') || getCookie(c, SESSION_COOKIE)
@@ -30,6 +31,14 @@ export function setSessionCookie(c: Context<{ Bindings: Env }>, sid: string) {
 
 export function clearSessionCookie(c: Context<{ Bindings: Env }>) {
   c.header('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`)
+}
+
+export function getPublicSessionCookie(c: Context<{ Bindings: Env }>): string | null {
+  return getCookie(c, PUBLIC_SESSION_COOKIE)
+}
+
+export function setPublicSessionCookie(c: Context<{ Bindings: Env }>, sid: string) {
+  c.header('Set-Cookie', `${PUBLIC_SESSION_COOKIE}=${sid}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`)
 }
 
 export async function verifyPassword(c: Context<{ Bindings: Env }>, password: string): Promise<boolean> {

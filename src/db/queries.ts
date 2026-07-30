@@ -2,8 +2,14 @@ import type { D1Database } from '@cloudflare/workers-types'
 
 export interface Env {
   DB: D1Database
-  AUTH_SECRET: string
+  AUTH_SECRET?: string
   MAIL_DOMAINS: string
+  ALLOWED_ORIGINS: string
+  TURNSTILE_SECRET_KEY?: string
+  TURNSTILE_SITE_KEY?: string
+  IMGCDN_BASE_URL?: string
+  SECURITY_CONTACT?: string
+  SECURITY_POLICY_URL?: string
 }
 
 export interface Inbox {
@@ -61,10 +67,12 @@ export async function createSession(db: D1Database, id: string, isAdmin = false)
   await db.prepare('INSERT OR IGNORE INTO sessions (id, is_admin) VALUES (?, ?)').bind(id, isAdmin ? 1 : 0).run()
 }
 
-export async function linkEmailToSession(db: D1Database, sid: string, address: string) {
-  await db.prepare(
+export async function linkEmailToSession(db: D1Database, sid: string, address: string): Promise<boolean> {
+  const result = await db.prepare(
     'INSERT OR IGNORE INTO session_emails (session_id, email_address) VALUES (?, ?)'
   ).bind(sid, address.toLowerCase()).run()
+  if (result.meta.changes > 0) return true
+  return isEmailLinkedToSession(db, sid, address)
 }
 
 export async function getSessionEmails(db: D1Database, sid: string) {
