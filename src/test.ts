@@ -211,6 +211,8 @@ import { LandingPage } from './web/public/landing'
   const landingStr = String(LandingPage({ domains: ['mail.example.com'], turnstileSiteKey: 'test-site-key', metrics: { lifetimeInboxes: 0, lifetimeMessages: 0 }, retentionHours: 24, timezone: 'UTC', timeFormat: '24' }))
   const match = landingStr.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/)
   console.assert(!!match, 'landing inline script found')
+  console.assert(landingStr.includes('cdn.simpleicons.org/hono/E36002') && landingStr.includes('cdn.simpleicons.org/cloudflareworkers/F38020'), 'landing footer exposes colored stack logos')
+  console.assert(landingStr.includes('href="/.well-known/security.txt"'), 'landing footer security link targets the published endpoint')
   new Function(match?.[1] || '')
   console.log('PASS: landing browser script syntax')
 }

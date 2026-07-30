@@ -260,20 +260,44 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
     </div>
   </section>
 
-  <!-- Footer -->
   <footer class="landing-footer">
-    <div class="landing-container footer-content">
-      <div style="display:flex;align-items:center;gap:10px">
-        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img-sm" />
-        <span style="font-weight:700;font-size:1.1rem">VoidMail</span>
+    <div class="landing-container">
+      <div class="footer-main">
+        <div class="footer-brand-block">
+          <a href="/" class="footer-brand" aria-label="VoidMail home">
+            <img src="/logo.png" alt="" class="brand-logo-img-sm" />
+            <span>Void<span>Mail</span></span>
+          </a>
+          <p>Instant disposable inboxes for sign-ups, testing, and keeping unwanted mail away from your primary address.</p>
+          <div class="footer-tech" aria-label="Technology stack">
+            <img src="https://cdn.simpleicons.org/hono/E36002" alt="Hono" title="Hono" loading="lazy" />
+            <img src="https://cdn.simpleicons.org/cloudflareworkers/F38020" alt="Cloudflare Workers" title="Cloudflare Workers" loading="lazy" />
+            <img src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare D1" title="Cloudflare D1" loading="lazy" />
+          </div>
+        </div>
+
+        <div class="footer-links-grid">
+          <nav class="footer-link-group" aria-label="Product links">
+            <strong>Product</strong>
+            <a href="#generator">Instant Mail</a>
+            <a href="#domains">Domains</a>
+            <a href="#features">Features</a>
+          </nav>
+          <nav class="footer-link-group" aria-label="Resource links">
+            <strong>Resources</strong>
+            <a href="/docs">Developer API</a>
+            <a href="/.well-known/security.txt">Security</a>
+            <a href="mailto:security@hamdiv.me">Report an issue</a>
+          </nav>
+        </div>
       </div>
-      <p style="color:var(--text-dim);font-size:0.85rem">
-        © 2026 VoidMail Temporary Email Service. All rights reserved.
-      </p>
-      <div style="display:flex;align-items:center;gap:12px">
-        <span style="font-size:0.75rem;color:var(--text-dim);display:flex;align-items:center;gap:6px">
-          <span class="pulse-dot"></span> System 100% Operational
-        </span>
+
+
+      <div class="footer-bottom">
+        <p>© 2026 VoidMail. All rights reserved.</p>
+        <p class="footer-made-with">
+          Made With love ❤️ by <a href="https://github.com/ilhmlnaa" target="_blank" rel="noopener noreferrer">Me</a>
+        </p>
       </div>
     </div>
   </footer>
@@ -343,7 +367,27 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
       }
     }
 
-    window.addEventListener('scroll', updateActiveNav);
+    const landingHeader = document.querySelector('.landing-header');
+    let lastHeaderScrollY = window.scrollY;
+    let headerScrollFrame = 0;
+
+    function updateHeaderVisibility() {
+      const currentScrollY = Math.max(window.scrollY, 0);
+      const scrollingDown = currentScrollY > lastHeaderScrollY;
+      const movedEnough = Math.abs(currentScrollY - lastHeaderScrollY) > 6;
+
+      if (landingHeader && movedEnough) {
+        landingHeader.classList.toggle('is-hidden', scrollingDown && currentScrollY > 96);
+        lastHeaderScrollY = currentScrollY;
+      }
+
+      updateActiveNav();
+      headerScrollFrame = 0;
+    }
+
+    window.addEventListener('scroll', () => {
+      if (!headerScrollFrame) headerScrollFrame = requestAnimationFrame(updateHeaderVisibility);
+    }, { passive: true });
 
     let currentPublicEmail = '';
     let publicSessionId = null;
@@ -778,6 +822,7 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
       if (!drawer) return;
       if (typeof show === 'boolean') {
         if (show) {
+          if (landingHeader) landingHeader.classList.remove('is-hidden');
           drawer.classList.add('open');
           if (backdrop) backdrop.classList.add('show');
           document.body.style.overflow = 'hidden';
@@ -788,6 +833,7 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
         }
       } else {
         const isOpen = drawer.classList.toggle('open');
+        if (isOpen && landingHeader) landingHeader.classList.remove('is-hidden');
         if (backdrop) backdrop.classList.toggle('show', isOpen);
         document.body.style.overflow = isOpen ? 'hidden' : '';
       }
