@@ -232,4 +232,28 @@ import { NotFoundPage } from './web/not-found'
   console.log('PASS: admin inbox and 404 templates')
 }
 
+// ─── 11. Anime Inbox Address Generator ───────────────────────────
+
+import { generateAnimeLocalPart } from './email/address-generator'
+
+{
+  const values = new Set(Array.from({ length: 20 }, generateAnimeLocalPart))
+  console.assert(values.size > 1, 'generator produces varied values')
+  for (const value of values) {
+    console.assert(/^[a-z]{3,12}0x[0-9a-f]{2}$/.test(value), `valid anime local part: ${value}`)
+  }
+  console.log('PASS: anime inbox address generator')
+}
+
+// ─── 12. Custom Prompt Modal ──────────────────────────────────────
+
+import { Layout } from './web/layout'
+
+{
+  const layout = String(Layout({ title: 'Test', children: 'Content', session: true }))
+  console.assert(layout.includes('id="confirmInputContainer"'), 'custom prompt input container rendered')
+  console.assert(layout.includes('function promptAction'), 'promptAction javascript function included')
+  console.log('PASS: custom prompt modal')
+}
+
 console.log('\nAll checks passed.')

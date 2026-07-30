@@ -32,7 +32,10 @@ export function Layout({ title, children, session }: { title: string; children: 
       <div class="confirm-icon"><i data-lucide="alert-triangle"></i></div>
       <h3 id="confirmTitle">Confirm Action</h3>
       <p id="confirmMsg">Are you sure?</p>
-      <div class="confirm-actions">
+      <div id="confirmInputContainer" style="display:none;margin-top:14px">
+        <input type="number" id="promptInput" style="width:100%" placeholder="Enter a value..." />
+      </div>
+      <div class="confirm-actions" style="margin-top:20px">
         <button type="button" class="btn-cancel" onclick="closeConfirmModal()">Cancel</button>
         <button type="button" class="btn-danger" id="confirmBtn">Confirm</button>
       </div>
@@ -79,6 +82,8 @@ export function Layout({ title, children, session }: { title: string; children: 
     function closeConfirmModal() {
       const m = document.getElementById('confirmModal');
       if (m) m.classList.remove('show');
+      const inputContainer = document.getElementById('confirmInputContainer');
+      if (inputContainer) inputContainer.style.display = 'none';
     }
 
     function confirmAction(title, message, btnText, onConfirm) {
@@ -91,6 +96,8 @@ export function Layout({ title, children, session }: { title: string; children: 
       const titleEl = document.getElementById('confirmTitle');
       const msgEl = document.getElementById('confirmMsg');
       const btn = document.getElementById('confirmBtn');
+      const inputContainer = document.getElementById('confirmInputContainer');
+      if (inputContainer) inputContainer.style.display = 'none';
       
       if (titleEl) titleEl.textContent = title;
       if (msgEl) msgEl.textContent = message;
@@ -99,6 +106,38 @@ export function Layout({ title, children, session }: { title: string; children: 
         btn.onclick = function() {
           closeConfirmModal();
           onConfirm();
+        };
+      }
+
+      m.classList.add('show');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function promptAction(title, message, placeholder, defaultValue, btnText, onSubmit) {
+      const m = document.getElementById('confirmModal');
+      if (!m) return;
+
+      const titleEl = document.getElementById('confirmTitle');
+      const msgEl = document.getElementById('confirmMsg');
+      const btn = document.getElementById('confirmBtn');
+      const inputContainer = document.getElementById('confirmInputContainer');
+      const input = document.getElementById('promptInput');
+
+      if (titleEl) titleEl.textContent = title;
+      if (msgEl) msgEl.textContent = message;
+      if (inputContainer) inputContainer.style.display = 'block';
+      if (input) {
+        input.placeholder = placeholder || '';
+        input.value = defaultValue || '';
+        setTimeout(() => input.focus(), 50);
+      }
+
+      if (btn) {
+        btn.textContent = btnText || 'Submit';
+        btn.onclick = function() {
+          const val = input ? input.value : '';
+          closeConfirmModal();
+          onSubmit(val);
         };
       }
 

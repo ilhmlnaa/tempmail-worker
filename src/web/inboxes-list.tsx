@@ -148,14 +148,21 @@ export function InboxesListPage({
       }
 
       function promptBulkDeleteOlderThan() {
-        const input = prompt('Delete inboxes created more than N days ago (enter 1 to 365):', '7');
-        if (!input) return;
-        const days = parseInt(input, 10);
-        if (isNaN(days) || days < 1 || days > 365) {
-          alert('Please enter a valid number of days between 1 and 365.');
-          return;
-        }
-        bulkDelete('older-than', days);
+        promptAction(
+          'Delete Old Inboxes',
+          'Enter the age threshold. Every inbox created before this many days will be permanently deleted.',
+          'Days between 1 and 365',
+          '7',
+          'Continue',
+          function(input) {
+            const days = parseInt(input, 10);
+            if (isNaN(days) || days < 1 || days > 365) {
+              showToast('Enter a whole number between 1 and 365.', true);
+              return;
+            }
+            bulkDelete('older-than', days);
+          }
+        );
       }
 
       async function del(addr) {

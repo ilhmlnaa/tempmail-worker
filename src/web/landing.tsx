@@ -416,8 +416,7 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
 
     async function generateNewPublicMail() {
       const domain = document.getElementById('widgetDomain').value || '${primaryDomain}';
-      const randomPrefix = 'temp_' + Math.random().toString(36).substring(2, 10);
-      await createPublicInbox(randomPrefix, domain);
+      await createPublicInbox('', domain);
     }
 
     async function createCustomMail() {
@@ -497,7 +496,7 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
             turnstileToken = token;
             const prefix = document.getElementById('customPrefix').value.trim();
             const domain = document.getElementById('widgetDomain').value || '${domains[0] || 'voidmail.my.id'}';
-            createPublicInbox(prefix || ('temp_' + Math.random().toString(36).substring(2, 10)), domain);
+            createPublicInbox(prefix, domain);
           }
         });
       } else {

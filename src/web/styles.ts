@@ -1532,62 +1532,64 @@ svg.lucide { stroke-width: 2; }
 }
 
 .widget-inbox-master-detail {
-  display: grid;
-  grid-template-columns: minmax(180px, 0.36fr) minmax(0, 1fr);
-  min-height: 280px;
-  max-height: 380px;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: rgba(11, 15, 25, 0.42);
+  overflow: hidden;
 }
 
 .widget-inbox-sidebar {
-  min-width: 0;
-  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   background: rgba(15, 23, 42, 0.72);
-  overflow-y: auto;
 }
 
 .widget-sidebar-title {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: 12px 14px 8px;
+  padding: 10px 14px;
   background: var(--bg-panel-solid);
   color: var(--text-dim);
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
 }
 
 .widget-sidebar-list {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px;
+  overflow-x: auto;
+  gap: 8px;
+  padding: 10px 14px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-inline: contain;
+}
+.widget-sidebar-list::-webkit-scrollbar {
+  display: none;
 }
 
 .inbox-sidebar-item {
-  width: 100%;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  scroll-snap-align: start;
   align-items: center;
-  gap: 9px;
-  padding: 10px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg-panel-solid);
   color: var(--text-dim);
-  text-align: left;
-  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .inbox-sidebar-item:hover {
   color: var(--text);
-  background: var(--bg-hover);
+  border-color: rgba(59, 130, 246, 0.4);
+  background: rgba(59, 130, 246, 0.08);
 }
 
 .inbox-sidebar-item:focus-visible {
@@ -1597,27 +1599,27 @@ svg.lucide { stroke-width: 2; }
 
 .inbox-sidebar-item.active {
   color: var(--text);
-  background: rgba(59, 130, 246, 0.12);
-  border-color: rgba(59, 130, 246, 0.38);
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--primary);
 }
 
 .inbox-sidebar-item svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   color: currentColor;
 }
 
 .inbox-sidebar-item.active svg { color: var(--primary); }
-.inbox-addr { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.78rem; }
+.inbox-addr { font-weight: 500; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
 
 .widget-messages-container {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 380px;
+  min-height: 280px;
+  max-height: 480px;
   overflow-y: auto;
-  overflow-x: hidden;
-  padding: 10px;
+  padding: 16px;
 }
 
 .widget-msg-item {
