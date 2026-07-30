@@ -59,9 +59,12 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
 
   <!-- Hero Section -->
   <section class="landing-hero">
+    <div class="hero-grid-bg"></div>
     <div class="landing-container hero-content">
       <span class="hero-badge"><span class="pulse-dot"></span> Next-Gen Disposable Email Service</span>
-      <h1 class="hero-title">Disposable Email into the <span class="gradient-text">Void</span></h1>
+      <h1 class="hero-title">
+        <span id="typedHeroText">Disposable Email into the </span><span class="gradient-text" id="typedHeroVoid">Void</span><span class="typewriter-cursor">|</span>
+      </h1>
       <p class="hero-subtitle">
         Generate instant, anonymous temporary email addresses in seconds. Keep your personal inbox safe from spam, trackers, and data leaks.
       </p>
@@ -89,9 +92,22 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
 
           <div class="widget-form-row">
             <input type="text" id="customPrefix" placeholder="Custom username (optional)..." />
-            <select id="widgetDomain">
-              ${domains.map(d => html`<option value="${d}">@${d}</option>`)}
-            </select>
+            <div class="domain-select" id="domainSelect">
+              <input type="hidden" id="widgetDomain" value="${primaryDomain}" />
+              <button type="button" class="domain-select-trigger" id="domainSelectTrigger" aria-haspopup="listbox" aria-expanded="false" onclick="toggleDomainSelect()">
+                <span id="selectedDomainLabel">@${primaryDomain}</span>
+                <i data-lucide="chevron-down" class="domain-select-chevron"></i>
+              </button>
+              <div class="domain-select-menu" id="domainSelectMenu" role="listbox" hidden>
+                ${domains.map((d, index) => html`
+                  <button type="button" class="domain-select-option ${index === 0 ? 'active' : ''}" role="option" aria-selected="${index === 0 ? 'true' : 'false'}" data-domain="${d}" onclick="selectDomainOption(this)">
+                    <span class="domain-select-icon"><i data-lucide="at-sign"></i></span>
+                    <span>${d}</span>
+                    <i data-lucide="check" class="domain-select-check"></i>
+                  </button>
+                `)}
+              </div>
+            </div>
             <button type="button" class="btn-secondary" onclick="createCustomMail()" id="btnCreateCustom">
               Create Custom
             </button>
@@ -114,8 +130,14 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
         <!-- Live Messages Inbox Reader Widget (Master-Detail Split) -->
         <div class="widget-inbox-section">
           <div class="widget-inbox-header">
-            <span><i data-lucide="inbox" class="icon-inline"></i> Session Inboxes & Messages</span>
-            <span class="widget-inbox-status" id="autoRefreshStatus">Auto-refreshing every 5s</span>
+            <div class="widget-inbox-heading">
+              <i data-lucide="inbox" class="widget-inbox-heading-icon"></i>
+              <div>
+                <strong>Session inboxes</strong>
+                <span>Switch inboxes and read incoming messages</span>
+              </div>
+            </div>
+            <span class="widget-inbox-status" id="autoRefreshStatus"><span class="pulse-dot"></span> Refreshes every 5s</span>
           </div>
 
           <div class="widget-inbox-master-detail">
@@ -352,8 +374,47 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
       showToast('cURL snippet copied');
     }
 
+    function toggleDomainSelect(force) {
+      const root = document.getElementById('domainSelect');
+      const trigger = document.getElementById('domainSelectTrigger');
+      const menu = document.getElementById('domainSelectMenu');
+      if (!root || !trigger || !menu) return;
+      const shouldOpen = typeof force === 'boolean' ? force : menu.hidden;
+      menu.hidden = !shouldOpen;
+      root.classList.toggle('open', shouldOpen);
+      trigger.setAttribute('aria-expanded', String(shouldOpen));
+      if (shouldOpen) menu.querySelector('.domain-select-option.active')?.focus();
+    }
+
+    function selectDomainOption(option) {
+      const domain = option.dataset.domain;
+      if (!domain) return;
+      document.getElementById('widgetDomain').value = domain;
+      document.getElementById('selectedDomainLabel').textContent = '@' + domain;
+      document.querySelectorAll('.domain-select-option').forEach(item => {
+        const active = item === option;
+        item.classList.toggle('active', active);
+        item.setAttribute('aria-selected', String(active));
+      });
+      toggleDomainSelect(false);
+      document.getElementById('domainSelectTrigger')?.focus();
+    }
+
+    function setSelectedDomain(domain) {
+      const option = Array.from(document.querySelectorAll('.domain-select-option')).find(item => item.dataset.domain === domain);
+      if (option) selectDomainOption(option);
+    }
+
+    document.addEventListener('click', event => {
+      const root = document.getElementById('domainSelect');
+      if (root && !root.contains(event.target)) toggleDomainSelect(false);
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') toggleDomainSelect(false);
+    });
+
     function selectDomainFromLanding(d) {
-      document.getElementById('widgetDomain').value = d;
+      setSelectedDomain(d);
       createCustomMail();
       document.getElementById('generator').scrollIntoView({ behavior: 'smooth' });
     }
@@ -691,8 +752,44 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
       }
     }
 
+    // Typewriter effect for Hero Title
+    function initHeroTypewriter() {
+      const textEl = document.getElementById('typedHeroText');
+      const voidEl = document.getElementById('typedHeroVoid');
+      if (!textEl || !voidEl) return;
+
+      const fullText = 'Disposable Email into the ';
+      const voidText = 'Void';
+
+      textEl.textContent = '';
+      voidEl.textContent = '';
+      voidEl.style.display = 'none';
+
+      let i = 0;
+      function typeFirstPart() {
+        if (i < fullText.length) {
+          textEl.textContent += fullText.charAt(i);
+          i++;
+          setTimeout(typeFirstPart, 45);
+        } else {
+          voidEl.style.display = 'inline';
+          let j = 0;
+          function typeVoidPart() {
+            if (j < voidText.length) {
+              voidEl.textContent += voidText.charAt(j);
+              j++;
+              setTimeout(typeVoidPart, 60);
+            }
+          }
+          typeVoidPart();
+        }
+      }
+      typeFirstPart();
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       initPublicMail();
+      initHeroTypewriter();
     });
   </script>
 </body>
