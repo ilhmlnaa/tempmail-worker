@@ -1,6 +1,6 @@
 import { html, raw } from 'hono/html'
 
-export function LandingPage({ domains }: { domains: string[] }) {
+export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; turnstileSiteKey: string }) {
   const primaryDomain = domains[0] || 'voidmail.my.id'
 
   return html`<!DOCTYPE html>
@@ -15,7 +15,8 @@ export function LandingPage({ domains }: { domains: string[] }) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/vendor/lucide-0.468.0.min.js"></script>
+  ${turnstileSiteKey ? html`<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>` : ''}
 </head>
 <body class="landing-body">
   <!-- Public Navbar -->
@@ -95,16 +96,38 @@ export function LandingPage({ domains }: { domains: string[] }) {
               Create Custom
             </button>
           </div>
+
+          ${turnstileSiteKey ? html`
+            <div class="turnstile-panel" id="turnstilePanel" hidden>
+              <div class="turnstile-panel-copy">
+                <i data-lucide="shield-check"></i>
+                <div>
+                  <strong>Quick security check</strong>
+                  <span>Complete this once to continue creating inboxes.</span>
+                </div>
+              </div>
+              <div id="turnstileWidget"></div>
+            </div>
+          ` : ''}
         </div>
 
-        <!-- Live Messages Inbox Reader Widget -->
+        <!-- Live Messages Inbox Reader Widget (Master-Detail Split) -->
         <div class="widget-inbox-section">
           <div class="widget-inbox-header">
-            <span><i data-lucide="inbox" class="icon-inline"></i> Incoming Messages</span>
+            <span><i data-lucide="inbox" class="icon-inline"></i> Session Inboxes & Messages</span>
             <span class="widget-inbox-status" id="autoRefreshStatus">Auto-refreshing every 5s</span>
           </div>
 
-          <div class="widget-messages-container" id="widgetMessagesContainer"></div>
+          <div class="widget-inbox-master-detail">
+            <!-- Sidebar list of user's active session inboxes -->
+            <div class="widget-inbox-sidebar">
+              <div class="widget-sidebar-title">Your Inboxes</div>
+              <div id="inboxesListSidebar" class="widget-sidebar-list"></div>
+            </div>
+
+            <!-- Messages list for active selected inbox -->
+            <div class="widget-messages-container" id="widgetMessagesContainer"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -276,14 +299,12 @@ export function LandingPage({ domains }: { domains: string[] }) {
     window.addEventListener('scroll', updateActiveNav);
 
     let currentPublicEmail = '';
-    let publicSessionId = localStorage.getItem('voidmail_public_sid');
+    let publicSessionId = null;
     let pollInterval = null;
     let widgetMessages = [];
-
-    if (!publicSessionId) {
-      publicSessionId = 'pub_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-      localStorage.setItem('voidmail_public_sid', publicSessionId);
-    }
+    let inboxesList = [];
+    let turnstileToken = null;
+    let turnstileWidgetId = null;
 
     function escapeHtml(s) {
       return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -337,12 +358,20 @@ export function LandingPage({ domains }: { domains: string[] }) {
 
     async function initPublicMail() {
       try {
-        await fetch('/api/session', { headers: { 'x-session-id': publicSessionId } });
+        await fetch('/api/session');
+        const res = await fetch('/api/session/inboxes');
+        if (res.ok) {
+          inboxesList = await res.json();
+          renderInboxesSidebar();
+        }
       } catch (e) {}
 
       const savedEmail = localStorage.getItem('voidmail_current_email');
-      if (savedEmail) {
-        currentPublicEmail = savedEmail;
+      if (inboxesList.length > 0) {
+        // Find if saved exists in our active session list
+        const exists = inboxesList.find(i => i.address === savedEmail);
+        currentPublicEmail = exists ? savedEmail : inboxesList[0].address;
+        localStorage.setItem('voidmail_current_email', currentPublicEmail);
         updateEmailDisplay(currentPublicEmail);
         showMessagesLoading();
         await loadMessages(currentPublicEmail);
@@ -350,6 +379,37 @@ export function LandingPage({ domains }: { domains: string[] }) {
       } else {
         await generateNewPublicMail();
       }
+    }
+
+    function renderInboxesSidebar() {
+      const container = document.getElementById('inboxesListSidebar');
+      if (!container) return;
+      if (inboxesList.length === 0) {
+        container.innerHTML = '<div style="padding:16px;color:var(--text-dim);font-size:0.85rem">No active inboxes</div>';
+        return;
+      }
+      container.innerHTML = inboxesList.map(inbox => {
+        const isActive = inbox.address === currentPublicEmail;
+        return \`
+          <button class="inbox-sidebar-item \${isActive ? 'active' : ''}" onclick="switchInbox('\${inbox.address}')">
+            <i data-lucide="\${isActive ? 'mail-open' : 'mail'}"></i>
+            <span class="inbox-addr">\${escapeHtml(inbox.address)}</span>
+            \${inbox.messageCount > 0 ? \`<span class="badge" style="font-size:0.7rem">\${inbox.messageCount}</span>\` : ''}
+          </button>
+        \`;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    async function switchInbox(address) {
+      if (address === currentPublicEmail) return;
+      currentPublicEmail = address;
+      localStorage.setItem('voidmail_current_email', currentPublicEmail);
+      updateEmailDisplay(address);
+      renderInboxesSidebar(); // Update active state
+      showMessagesLoading();
+      await loadMessages(currentPublicEmail);
+      startPollingMessages(currentPublicEmail);
     }
 
     async function generateNewPublicMail() {
@@ -377,20 +437,37 @@ export function LandingPage({ domains }: { domains: string[] }) {
       setCreatingState(true);
       showMessagesLoading();
       try {
+        const payload = { address: prefix, domain: domain };
+        if (turnstileToken) payload.turnstileToken = turnstileToken;
+
         const res = await fetch('/api/inboxes', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'x-session-id': publicSessionId
+            'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ address: prefix, domain: domain })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
+        
+        if (res.status === 403 && data.requireCaptcha) {
+          renderWidgetMessages([]);
+          showTurnstileChallenge();
+          return;
+        }
+
         if (data.address) {
+          // Reset token state after success
+          turnstileToken = null;
+          hideTurnstileChallenge();
+          
+          if (!inboxesList.find(i => i.address === data.address)) {
+            inboxesList.unshift({ address: data.address, messageCount: 0 });
+          }
           currentPublicEmail = data.address;
           localStorage.setItem('voidmail_current_email', currentPublicEmail);
           updateEmailDisplay(currentPublicEmail);
           document.getElementById('customPrefix').value = '';
+          renderInboxesSidebar();
           await loadMessages(currentPublicEmail);
           startPollingMessages(currentPublicEmail);
           showToast('Email ready: ' + currentPublicEmail);
@@ -406,6 +483,31 @@ export function LandingPage({ domains }: { domains: string[] }) {
       }
     }
 
+    function showTurnstileChallenge() {
+      const panel = document.getElementById('turnstilePanel');
+      if (!panel || !window.turnstile) return;
+      panel.hidden = false;
+      if (turnstileWidgetId === null) {
+        turnstileWidgetId = window.turnstile.render('#turnstileWidget', {
+          sitekey: '${turnstileSiteKey}',
+          theme: 'dark',
+          callback: function(token) {
+            turnstileToken = token;
+            const prefix = document.getElementById('customPrefix').value.trim();
+            const domain = document.getElementById('widgetDomain').value || '${domains[0] || 'voidmail.my.id'}';
+            createPublicInbox(prefix || ('temp_' + Math.random().toString(36).substring(2, 10)), domain);
+          }
+        });
+      } else {
+        window.turnstile.reset(turnstileWidgetId);
+      }
+    }
+
+    function hideTurnstileChallenge() {
+      const panel = document.getElementById('turnstilePanel');
+      if (panel) panel.hidden = true;
+    }
+
     function updateEmailDisplay(email) {
       document.getElementById('widgetEmail').textContent = email;
     }
@@ -413,9 +515,7 @@ export function LandingPage({ domains }: { domains: string[] }) {
     async function loadMessages(email, attempts = 4) {
       for (let a = 0; a < attempts; a++) {
         try {
-          const res = await fetch('/api/inboxes/' + encodeURIComponent(email) + '/messages', {
-            headers: { 'x-session-id': publicSessionId }
-          });
+          const res = await fetch('/api/inboxes/' + encodeURIComponent(email) + '/messages');
           if (res.ok) {
             renderWidgetMessages(await res.json());
             return;
@@ -434,10 +534,16 @@ export function LandingPage({ domains }: { domains: string[] }) {
     async function fetchMessages(email) {
       if (!email) return;
       try {
-        const res = await fetch('/api/inboxes/' + encodeURIComponent(email) + '/messages', {
-          headers: { 'x-session-id': publicSessionId }
-        });
-        if (res.ok) renderWidgetMessages(await res.json());
+        const res = await fetch('/api/inboxes/' + encodeURIComponent(email) + '/messages');
+        if (res.ok) {
+          const msgs = await res.json();
+          const targetInbox = inboxesList.find(i => i.address === email);
+          if (targetInbox && targetInbox.messageCount !== msgs.length) {
+            targetInbox.messageCount = msgs.length;
+            renderInboxesSidebar();
+          }
+          renderWidgetMessages(msgs);
+        }
       } catch (err) {}
     }
 
@@ -485,16 +591,17 @@ export function LandingPage({ domains }: { domains: string[] }) {
       lucide.createIcons();
     }
 
-    function resizeModalIframe(iframe) {
-      if (!iframe) return;
+
+
+    async function loadMessageImagesWithProxy(i) {
+      if (!currentPublicEmail) return;
       try {
-        const doc = iframe.contentDocument || iframe.contentWindow.document;
-        if (!doc || !doc.body) return;
-        doc.body.style.margin = '0';
-        doc.body.style.padding = '16px';
-        const height = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 200);
-        iframe.style.height = (height + 24) + 'px';
-      } catch (e) {}
+        const res = await fetch('/api/inboxes/' + encodeURIComponent(currentPublicEmail) + '/messages?images=proxy');
+        if (res.ok) {
+          widgetMessages = await res.json();
+          openMessage(i);
+        }
+      } catch (err) {}
     }
 
     function openMessage(i) {
@@ -514,13 +621,13 @@ export function LandingPage({ domains }: { domains: string[] }) {
 
       const rendered = document.getElementById('mv-rendered');
       if (htmlDecoded) {
-        rendered.innerHTML = '<div class="iframe-wrapper"><iframe sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" class="msg-iframe" id="modalIframe"></iframe></div>';
+        const hasBlockedImages = /src="data:image\/gif;base64/i.test(htmlDecoded);
+        const proxyBanner = hasBlockedImages
+          ? '<div class="proxy-img-banner"><i data-lucide="shield-alert"></i> <span>External images blocked to protect your privacy.</span> <button type="button" class="btn-secondary btn-sm" onclick="loadMessageImagesWithProxy(' + i + ')">Load images via ImgCDN</button></div>'
+          : '';
+        rendered.innerHTML = proxyBanner + '<div class="iframe-wrapper"><iframe sandbox="allow-popups" referrerpolicy="no-referrer" class="msg-iframe" id="modalIframe"></iframe></div>';
         const iframe = document.getElementById('modalIframe');
         iframe.srcdoc = htmlDecoded;
-        iframe.onload = () => {
-          resizeModalIframe(iframe);
-          setTimeout(() => resizeModalIframe(iframe), 300);
-        };
       } else {
         rendered.innerHTML = '<div class="msg-plain">' + escapeHtml(bodyDecoded || '(empty message)') + '</div>';
       }
@@ -550,10 +657,6 @@ export function LandingPage({ domains }: { domains: string[] }) {
         if (btn) btn.classList.toggle('active', m === mode);
         if (view) view.classList.toggle('active', m === mode);
       });
-      if (mode === 'rendered') {
-        const iframe = document.getElementById('modalIframe');
-        if (iframe) setTimeout(() => resizeModalIframe(iframe), 50);
-      }
     }
 
     function hideMessageModal() {
