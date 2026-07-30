@@ -752,39 +752,60 @@ export function LandingPage({ domains, turnstileSiteKey }: { domains: string[]; 
       }
     }
 
-    // Typewriter effect for Hero Title
+    // Typewriter effect with infinite rotating words for Hero Title
     function initHeroTypewriter() {
       const textEl = document.getElementById('typedHeroText');
       const voidEl = document.getElementById('typedHeroVoid');
       if (!textEl || !voidEl) return;
 
-      const fullText = 'Disposable Email into the ';
-      const voidText = 'Void';
+      const prefixText = 'Disposable Email into the ';
+      const words = ['Void', 'Shadow', 'Ether', 'Abyss', 'Cipher', 'Future'];
+      let wordIndex = 0;
 
       textEl.textContent = '';
       voidEl.textContent = '';
       voidEl.style.display = 'none';
 
       let i = 0;
-      function typeFirstPart() {
-        if (i < fullText.length) {
-          textEl.textContent += fullText.charAt(i);
+      function typePrefix() {
+        if (i < prefixText.length) {
+          textEl.textContent += prefixText.charAt(i);
           i++;
-          setTimeout(typeFirstPart, 45);
+          setTimeout(typePrefix, 40);
         } else {
           voidEl.style.display = 'inline';
-          let j = 0;
-          function typeVoidPart() {
-            if (j < voidText.length) {
-              voidEl.textContent += voidText.charAt(j);
-              j++;
-              setTimeout(typeVoidPart, 60);
-            }
-          }
-          typeVoidPart();
+          typeWord();
         }
       }
-      typeFirstPart();
+
+      function typeWord() {
+        const currentWord = words[wordIndex];
+        let j = 0;
+        function typing() {
+          if (j < currentWord.length) {
+            voidEl.textContent += currentWord.charAt(j);
+            j++;
+            setTimeout(typing, 80);
+          } else {
+            // Wait 2 seconds before erasing
+            setTimeout(eraseWord, 2000);
+          }
+        }
+        typing();
+      }
+
+      function eraseWord() {
+        const currentWord = voidEl.textContent;
+        if (currentWord.length > 0) {
+          voidEl.textContent = currentWord.substring(0, currentWord.length - 1);
+          setTimeout(eraseWord, 40);
+        } else {
+          wordIndex = (wordIndex + 1) % words.length;
+          setTimeout(typeWord, 300);
+        }
+      }
+
+      typePrefix();
     }
 
     window.addEventListener('DOMContentLoaded', () => {
