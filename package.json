@@ -10,11 +10,14 @@
     "db:init": "wrangler d1 execute tempmail-db --remote --file=src/db/schema.sql"
   },
   "dependencies": {
-    "hono": "^4.6.5"
+    "chart.js": "^4.4.7",
+    "hono": "^4.6.5",
+    "lucide": "^0.468.0",
+    "swagger-ui-dist": "^5.17.14"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241022.0",
+    "@cloudflare/workers-types": "^5.20260730.1",
     "typescript": "^5.6.3",
-    "wrangler": "^3.84.1"
+    "wrangler": "^4.115.0"
   }
 }

@@ -13,8 +13,8 @@ export function Layout({ title, children, session }: { title: string; children: 
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/vendor/lucide-0.468.0.min.js"></script>
+  <script src="/vendor/chart-4.4.7.umd.js"></script>
 </head>
 <body class="${session ? 'admin-body' : ''}">
   ${session ? html`

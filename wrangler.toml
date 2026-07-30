@@ -2,6 +2,9 @@ name = "tempmail-worker"
 compatibility_date = "2024-10-22"
 main = "src/index.ts"
 
+[assets]
+directory = "./public"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "tempmail-db"
@@ -12,5 +15,11 @@ enabled = true
 head_sampling_rate = 1
 
 [vars]
-AUTH_SECRET = "change-me-to-random-string"
+# Optional admin bootstrap secret; prefer setup flow or: npx wrangler secret put AUTH_SECRET
 MAIL_DOMAINS = "zenime.online,devnet.my.id"
+ALLOWED_ORIGINS = "https://voidmail.my.id"
+IMGCDN_BASE_URL = "https://imgcdn.arm.hamdiv.me"
+# Public key; set after creating a Cloudflare Turnstile widget.
+# TURNSTILE_SITE_KEY = "0x4AAAA..."
+# Store TURNSTILE_SECRET_KEY with: npx wrangler secret put TURNSTILE_SECRET_KEY
+# SECURITY_CONTACT = "mailto:security@example.com"

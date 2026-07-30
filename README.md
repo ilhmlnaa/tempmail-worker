@@ -93,6 +93,38 @@ MAILLDEZ_DOMAINS=zenime.online,your-other-domain.com
 
 ---
 
+## 🛡️ Turnstile (Adaptive Bot Protection)
+
+Turnstile bersifat opsional dan hanya muncul saat session membuat inbox keempat atau berikutnya. Setup lengkap, termasuk pemisahan public site key dan Worker secret, ada di [`docs/TURNSTILE.md`](docs/TURNSTILE.md).
+
+```bash
+npx wrangler secret put TURNSTILE_SECRET_KEY
+```
+
+Set `TURNSTILE_SITE_KEY` di `wrangler.toml` setelah membuat widget Cloudflare Turnstile. Jangan menyimpan secret key di source code atau `[vars]`.
+
+---
+
+## 🔒 Transport & Browser Security
+
+HTTPS redirect, security headers, CORS allowlist, API cache policy, dan CSP rollout dijelaskan di [`docs/SECURITY_HEADERS.md`](docs/SECURITY_HEADERS.md).
+
+Pastikan `ALLOWED_ORIGINS` hanya berisi origin frontend resmi dan aktifkan **Always Use HTTPS**, **Full (strict)**, serta cache bypass `/api/*` di Cloudflare Dashboard.
+
+---
+
+## ✉️ Email Privacy & ImgCDN
+
+HTML email disanitasi server-side, gambar eksternal diblokir secara default, dan pengguna dapat memuat gambar melalui privacy proxy. Konfigurasi dan batas ImgCDN dijelaskan di [`docs/EMAIL_PRIVACY.md`](docs/EMAIL_PRIVACY.md).
+
+---
+
+## 🚨 Security Reporting
+
+Konfigurasi `/.well-known/security.txt` dan kebijakan logging dijelaskan di [`docs/SECURITY_REPORTING.md`](docs/SECURITY_REPORTING.md). Endpoint tidak dipublikasikan sampai `SECURITY_CONTACT` diatur ke alamat yang benar-benar dipantau.
+
+---
+
 ## 🛠️ Local Development
 
 ```bash

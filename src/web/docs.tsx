@@ -3,7 +3,7 @@ import { Layout } from './layout'
 
 export function DocsPage({ session = false }: { session?: boolean }) {
   const swaggerHtml = `
-    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
+    <link rel="stylesheet" href="/vendor/swagger-ui-5.17.14.css" />
     <style>
       .swagger-ui { font-family: inherit !important; color: #f8fafc !important; }
       .swagger-ui .wrapper { padding: 0 !important; max-width: none !important; }
@@ -49,7 +49,7 @@ export function DocsPage({ session = false }: { session?: boolean }) {
 
     <div id="swagger-ui"></div>
     
-    <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
+    <script src="/vendor/swagger-ui-5.17.14-bundle.js"></script>
     <script>
       window.onload = () => {
         const spec = {
@@ -182,7 +182,7 @@ export function DocsPage({ session = false }: { session?: boolean }) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/vendor/lucide-0.468.0.min.js"></script>
 </head>
 <body class="landing-body">
   <header class="landing-header">
