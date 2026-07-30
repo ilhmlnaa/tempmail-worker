@@ -15,24 +15,38 @@ export interface Env {
 export interface Inbox {
   address: string
   domain: string
+  source: string
   createdAt: string
   messageCount: number
   lastMessageAt: string | null
 }
 
+export interface AppMetrics {
+  lifetimeInboxes: number
+  lifetimeMessages: number
+}
+
 // ── Emails ─────────────────────────────────────────────────
 
-export async function createEmail(db: D1Database, address: string, domain: string, apiKeyId: string | null = null) {
-  if (apiKeyId) {
-    // Karena SQLite ngga bisa INSERT OR IGNORE kalo mau UPDATE kolom tambahan saat exist, kita pakai upsert
-    await db.prepare(`
-      INSERT INTO emails (address, domain, api_key_id) VALUES (?, ?, ?)
-      ON CONFLICT(address) DO UPDATE SET api_key_id = excluded.api_key_id
-    `).bind(address.toLowerCase(), domain, apiKeyId).run()
-  } else {
-    await db.prepare(
-      'INSERT OR IGNORE INTO emails (address, domain) VALUES (?, ?)'
-    ).bind(address.toLowerCase(), domain).run()
+export async function createEmail(
+  db: D1Database,
+  address: string,
+  domain: string,
+  apiKeyId: string | null = null,
+  source: 'public' | 'admin' | 'api' | 'inbound' = 'public',
+) {
+  const normalized = address.toLowerCase()
+  const result = apiKeyId
+    ? await db.prepare(`
+        INSERT INTO emails (address, domain, api_key_id, source) VALUES (?, ?, ?, ?)
+        ON CONFLICT(address) DO UPDATE SET api_key_id = excluded.api_key_id, source = 'api'
+      `).bind(normalized, domain, apiKeyId, source).run()
+    : await db.prepare(
+        'INSERT OR IGNORE INTO emails (address, domain, source) VALUES (?, ?, ?)'
+      ).bind(normalized, domain, source).run()
+
+  if (result.meta.changes > 0 && !apiKeyId) {
+    await incrementMetric(db, 'lifetime_inboxes')
   }
 }
 
@@ -52,6 +66,7 @@ export async function insertMessage(db: D1Database,
   await db.prepare(
     'INSERT INTO messages (id, email_address, from_address, subject, body, html_body) VALUES (?, ?, ?, ?, ?, ?)'
   ).bind(msg.id, msg.email.toLowerCase(), msg.from, msg.subject, msg.body, msg.html || null).run()
+  await incrementMetric(db, 'lifetime_messages')
 }
 
 export async function getMessages(db: D1Database, address: string, limit = 50) {
@@ -77,7 +92,7 @@ export async function linkEmailToSession(db: D1Database, sid: string, address: s
 
 export async function getSessionEmails(db: D1Database, sid: string) {
   const r = await db.prepare(
-    `SELECT e.address, e.domain, e.created_at as createdAt,
+    `SELECT e.address, e.domain, e.source, e.created_at as createdAt,
             (SELECT COUNT(*) FROM messages m WHERE m.email_address = e.address) as messageCount,
             (SELECT MAX(m.received_at) FROM messages m WHERE m.email_address = e.address) as lastMessageAt
      FROM session_emails se
@@ -96,7 +111,7 @@ export async function getAllEmails(db: D1Database, limit: number = 20, offset: n
   const totalMessages = msgsResult ? (msgsResult.totalMsgs as number) : 0
 
   const r = await db.prepare(
-    `SELECT e.address, e.domain, e.created_at as createdAt,
+    `SELECT e.address, e.domain, e.source, e.created_at as createdAt,
             (SELECT COUNT(*) FROM messages m WHERE m.email_address = e.address) as messageCount,
             (SELECT MAX(m.received_at) FROM messages m WHERE m.email_address = e.address) as lastMessageAt
      FROM emails e
@@ -276,20 +291,48 @@ export async function deleteEmail(db: D1Database, address: string) {
   await db.prepare('DELETE FROM emails WHERE address = ?').bind(address.toLowerCase()).run()
 }
 
-export async function deleteEmptyEmails(db: D1Database): Promise<number> {
+export async function deleteEmptyEmails(db: D1Database, scope: 'public' | 'all' = 'public', olderThanHours: number = 6): Promise<number> {
+  const scopeCondition = scope === 'public' ? "AND source IN ('public', 'inbound')" : ""
   const result = await db.prepare(`
     DELETE FROM emails 
     WHERE address NOT IN (SELECT DISTINCT email_address FROM messages)
-  `).run()
+    AND created_at < datetime('now', ? || ' hours')
+    ${scopeCondition}
+  `).bind(-Math.abs(olderThanHours)).run()
   return result.meta.changes
 }
 
-export async function deleteOldEmails(db: D1Database, days: number): Promise<number> {
+export async function deleteOldEmails(db: D1Database, scope: 'public' | 'all' = 'public', olderThanHours: number = 24): Promise<number> {
+  const scopeCondition = scope === 'public' ? "AND source IN ('public', 'inbound')" : ""
+  // Delete emails where both creation time and last message time (if any) are older than retention
   const result = await db.prepare(`
     DELETE FROM emails 
-    WHERE created_at < datetime('now', ? || ' days')
-  `).bind(-Math.abs(days)).run()
+    WHERE created_at < datetime('now', ? || ' hours')
+    AND (
+      NOT EXISTS (SELECT 1 FROM messages WHERE email_address = emails.address)
+      OR
+      (SELECT MAX(received_at) FROM messages WHERE email_address = emails.address) < datetime('now', ? || ' hours')
+    )
+    ${scopeCondition}
+  `).bind(-Math.abs(olderThanHours), -Math.abs(olderThanHours)).run()
   return result.meta.changes
+}
+
+export async function incrementMetric(db: D1Database, key: string) {
+  await db.prepare(`
+    INSERT INTO app_metrics (key, value) VALUES (?, 1)
+    ON CONFLICT(key) DO UPDATE SET value = value + 1
+  `).bind(key).run()
+}
+
+export async function getAppMetrics(db: D1Database): Promise<AppMetrics> {
+  const r = await db.prepare('SELECT key, value FROM app_metrics').all()
+  const metrics = { lifetimeInboxes: 0, lifetimeMessages: 0 }
+  for (const row of r.results) {
+    if (row.key === 'lifetime_inboxes') metrics.lifetimeInboxes = Number(row.value)
+    if (row.key === 'lifetime_messages') metrics.lifetimeMessages = Number(row.value)
+  }
+  return metrics
 }
 
 export async function isValidSession(db: D1Database, id: string): Promise<boolean> {

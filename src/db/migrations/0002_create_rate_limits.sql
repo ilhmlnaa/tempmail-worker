@@ -8,3 +8,10 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 );
 
 CREATE INDEX IF NOT EXISTS idx_rate_limits_reset ON rate_limits(reset_at);
+
+CREATE TABLE IF NOT EXISTS app_metrics (
+  key TEXT PRIMARY KEY,
+  value INTEGER NOT NULL DEFAULT 0
+);
+
+INSERT OR IGNORE INTO app_metrics (key, value) VALUES ('lifetime_inboxes', 0), ('lifetime_messages', 0);

@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS emails (
   address     TEXT PRIMARY KEY,
   domain      TEXT NOT NULL,
   created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-  api_key_id  TEXT REFERENCES api_keys(id) ON DELETE SET NULL
+  api_key_id  TEXT REFERENCES api_keys(id) ON DELETE SET NULL,
+  source      TEXT NOT NULL DEFAULT 'public'
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -52,3 +53,10 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS app_metrics (
+  key TEXT PRIMARY KEY,
+  value INTEGER NOT NULL DEFAULT 0
+);
+
+INSERT OR IGNORE INTO app_metrics (key, value) VALUES ('lifetime_inboxes', 0), ('lifetime_messages', 0);

@@ -122,7 +122,7 @@ export async function handleEmail(message: ForwardableEmailMessage, env: Env): P
   console.log('[email] received:', to, 'from:', message.from)
 
   try {
-    await createEmail(env.DB, to, domain)
+    await createEmail(env.DB, to, domain, null, 'inbound')
 
     const rawText = await new Response(message.raw).text()
     const { from, subject, textBody, htmlBody } = parseEmail(rawText)
