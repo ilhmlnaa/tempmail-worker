@@ -1,0 +1,7 @@
+export interface Inbox { address: string; domain: string; source: string; createdAt: string; messageCount: number; lastMessageAt: string | null }
+export interface ApiKey { id: string; keyValue: string; permittedDomains: string; maxInboxes: number; maxMessages: number; createdAt: string }
+export interface Message { id: string; from: string; fromAddress?: string; subject: string; body: string; text?: string; html?: string | null; createdAt: string; receivedAt?: string }
+export interface AppMetrics { totalInboxes: number; totalMessages: number; lifetimeInboxes: number; lifetimeMessages: number; domainStats: Record<string, number> }
+export interface SystemSettings { mail_domains: string; public_tempmail_enabled: string; public_max_inboxes_per_session: number; public_allowed_domains: string; cleanup_enabled: string; cleanup_scope: string; cleanup_empty_hours: number; cleanup_retention_hours: number; last_cleanup_at: string; last_cleanup_deleted: number; timezone: string; time_format: string }
+export interface MaintenanceConfig { enabled: boolean; startAt: string; endAt: string; bannerTitle: string; bannerMessage: string; pageTitle: string; pageMessage: string; showBanner: boolean; allowApi: boolean; allowInboxReads: boolean; status: 'inactive' | 'scheduled' | 'active' | 'expired' }
+export interface AdminBootstrapData { metrics: AppMetrics; keysCount: number; domains: string[]; settings: SystemSettings; maintenance: MaintenanceConfig }

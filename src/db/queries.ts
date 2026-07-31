@@ -296,25 +296,35 @@ export async function getSetting(db: D1Database, key: string, fallback: string):
   return fallback
 }
 
+export async function getAllSettings(db: D1Database): Promise<Record<string, string>> {
+  const r = await db.prepare('SELECT key, value FROM settings').all()
+  const map: Record<string, string> = {}
+  if (r && r.results) {
+    for (const row of r.results) {
+      map[row.key as string] = row.value as string
+    }
+  }
+  return map
+}
+
 export async function updateSetting(db: D1Database, key: string, value: string) {
   await db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?')
     .bind(key, value, value).run()
 }
 
-export async function getMaintenanceConfig(db: D1Database, now = new Date()): Promise<MaintenanceConfig> {
-  const values = await Promise.all([
-    getSetting(db, 'maintenance_enabled', 'disabled'),
-    getSetting(db, 'maintenance_start_at', ''),
-    getSetting(db, 'maintenance_end_at', ''),
-    getSetting(db, 'maintenance_banner_title', 'Scheduled Maintenance'),
-    getSetting(db, 'maintenance_banner_message', 'VoidMail will be temporarily unavailable while we upgrade our systems.'),
-    getSetting(db, 'maintenance_page_title', 'We will be back shortly'),
-    getSetting(db, 'maintenance_page_message', 'VoidMail is undergoing planned maintenance. Please check back shortly.'),
-    getSetting(db, 'maintenance_show_banner', 'enabled'),
-    getSetting(db, 'maintenance_allow_api', 'disabled'),
-    getSetting(db, 'maintenance_allow_inbox_reads', 'disabled'),
-  ])
-  const [enabled, startAt, endAt, bannerTitle, bannerMessage, pageTitle, pageMessage, showBanner, allowApi, allowInboxReads] = values
+export function parseMaintenanceConfig(settingsMap: Record<string, string>, now = new Date()): MaintenanceConfig {
+  const get = (key: string, fallback: string) => settingsMap[key] !== undefined ? settingsMap[key] : fallback
+  const enabled = get('maintenance_enabled', 'disabled')
+  const startAt = get('maintenance_start_at', '')
+  const endAt = get('maintenance_end_at', '')
+  const bannerTitle = get('maintenance_banner_title', 'Scheduled Maintenance')
+  const bannerMessage = get('maintenance_banner_message', 'VoidMail will be temporarily unavailable while we upgrade our systems.')
+  const pageTitle = get('maintenance_page_title', 'We will be back shortly')
+  const pageMessage = get('maintenance_page_message', 'VoidMail is undergoing planned maintenance. Please check back shortly.')
+  const showBanner = get('maintenance_show_banner', 'enabled')
+  const allowApi = get('maintenance_allow_api', 'disabled')
+  const allowInboxReads = get('maintenance_allow_inbox_reads', 'disabled')
+
   const start = startAt ? new Date(startAt) : null
   const end = endAt ? new Date(endAt) : null
   const status = enabled !== 'enabled' || !start || Number.isNaN(start.getTime())
@@ -327,9 +337,13 @@ export async function getMaintenanceConfig(db: D1Database, now = new Date()): Pr
 
   return {
     enabled: enabled === 'enabled', startAt, endAt, bannerTitle, bannerMessage, pageTitle, pageMessage,
-    showBanner: showBanner === 'enabled', allowApi: allowApi === 'enabled',
-    allowInboxReads: allowInboxReads === 'enabled', status,
+    showBanner: showBanner === 'enabled', allowApi: allowApi === 'enabled', allowInboxReads: allowInboxReads === 'enabled', status
   }
+}
+
+export async function getMaintenanceConfig(db: D1Database, now = new Date()): Promise<MaintenanceConfig> {
+  const settingsMap = await getAllSettings(db)
+  return parseMaintenanceConfig(settingsMap, now)
 }
 
 export async function deleteEmail(db: D1Database, address: string) {

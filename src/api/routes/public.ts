@@ -10,11 +10,32 @@ import {
   createEmail, getMessages, emailExists,
   linkEmailToSession, unlinkEmailFromSession,
   getApiKeyByValue, getApiKeyInboxCount, getApiKeyMessageCount,
-  getSetting
+  getSetting, getAppMetrics
 } from '../../db/queries'
 import { getOrCreatePublicSession, randomString } from './shared'
 
 const publicApi = new Hono<{ Bindings: Env }>()
+
+publicApi.get('/config', async (c) => {
+  const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')
+  const domains = domainsStr.split(',').map(d => d.trim()).filter(Boolean)
+  const retentionHours = parseInt(await getSetting(c.env.DB, 'cleanup_retention_hours', '24'), 10)
+  const metrics = await getAppMetrics(c.env.DB)
+  const turnstileSiteKey = c.env.TURNSTILE_SITE_KEY || null
+  const publicEnabled = await getSetting(c.env.DB, 'public_tempmail_enabled', 'enabled')
+  const { getMaintenanceConfig } = await import('../../db/queries')
+  const maintenance = await getMaintenanceConfig(c.env.DB)
+  return c.json({
+    domains,
+    primaryDomain: domains[0] || 'voidmail.my.id',
+    retentionHours,
+    lifetimeMessages: metrics.lifetimeMessages || 0,
+    totalInboxes: metrics.lifetimeInboxes || 0,
+    turnstileSiteKey,
+    publicEnabled: publicEnabled !== 'disabled',
+    maintenance,
+  })
+})
 
 publicApi.get('/session', async (c) => {
   const limited = await enforceRateLimits(c, [
