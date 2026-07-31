@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useLayoutEffect, useState, type ReactNode } from 'react'
 
 export type Theme = 'legacy' | 'brutal'
 type ColorMode = 'dark' | 'light'
@@ -9,7 +9,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null)
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'legacy')
   const [colorMode, setColorMode] = useState<ColorMode>(() => (localStorage.getItem('color-mode') as ColorMode) || 'dark')
-  useEffect(() => { document.documentElement.dataset.theme = theme; document.documentElement.classList.toggle('dark', colorMode === 'dark'); localStorage.setItem('theme', theme); localStorage.setItem('color-mode', colorMode) }, [theme, colorMode])
+  useLayoutEffect(() => { document.documentElement.dataset.theme = theme; document.documentElement.classList.toggle('dark', colorMode === 'dark'); localStorage.setItem('theme', theme); localStorage.setItem('color-mode', colorMode) }, [theme, colorMode])
   return <ThemeContext.Provider value={{ theme, colorMode, setTheme, toggleColorMode: () => setColorMode(value => value === 'dark' ? 'light' : 'dark') }}>{children}</ThemeContext.Provider>
 }
 
