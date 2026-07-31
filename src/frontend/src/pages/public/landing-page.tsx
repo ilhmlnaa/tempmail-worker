@@ -225,7 +225,7 @@ export function LandingPage() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 max-w-3xl mx-auto"
             >
-              <motion.div whileHover={{ y: -3 }} className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card/60 backdrop-blur-md flex items-center gap-3 shadow-xs transition-shadow hover:shadow-md">
+              <motion.div whileHover={{ y: -3 }} className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card flex items-center gap-3 shadow-xs transition-shadow hover:shadow-md">
                 <div className="p-2 sm:p-2.5 rounded-lg bg-primary/10 text-primary shrink-0">
                   <Globe className="w-4 h-4" />
                 </div>
@@ -237,7 +237,7 @@ export function LandingPage() {
                 </div>
               </motion.div>
 
-              <motion.div whileHover={{ y: -3 }} className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card/60 backdrop-blur-md flex items-center gap-3 shadow-xs transition-shadow hover:shadow-md">
+              <motion.div whileHover={{ y: -3 }} className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card flex items-center gap-3 shadow-xs transition-shadow hover:shadow-md">
                 <div className="p-2 sm:p-2.5 rounded-lg bg-cyan-500/10 text-cyan-400 shrink-0">
                   <Mail className="w-4 h-4" />
                 </div>
@@ -249,8 +249,8 @@ export function LandingPage() {
                 </div>
               </motion.div>
 
-              <motion.div whileHover={{ y: -3 }} className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card/60 backdrop-blur-md flex items-center gap-3 col-span-2 sm:col-span-1 shadow-xs transition-shadow hover:shadow-md">
-                <div className="p-2 sm:p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+              <motion.div whileHover={{ y: -3 }} className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card flex items-center gap-3 col-span-2 sm:col-span-1 shadow-xs transition-shadow hover:shadow-md">
+                <div className="p-2 sm:p-2.5 rounded-lg bg-primary/10 text-primary shrink-0">
                   <Clock className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -267,7 +267,7 @@ export function LandingPage() {
               initial={{ opacity: 0, y: 30, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="max-w-4xl mx-auto shadow-2xl rounded-2xl border border-primary/20 bg-card/90 backdrop-blur-xl overflow-hidden"
+              className="max-w-5xl mx-auto shadow-xl rounded-2xl border border-primary/30 bg-card overflow-hidden"
               id="generator"
             >
               <div className="p-5 border-b border-border/60 bg-muted/40 flex items-center justify-between flex-wrap gap-2">
@@ -322,7 +322,7 @@ export function LandingPage() {
                       <SelectTrigger className="h-10 w-full sm:w-52.5 shrink-0 font-mono text-xs font-bold bg-background border-border shadow-xs hover:border-primary/50 transition-colors">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="border border-border bg-card/95 backdrop-blur-xl shadow-xl min-w-52.5">
+                      <SelectContent className="border border-border bg-card shadow-xl min-w-52.5">
                         {domainsList.map(d => (
                           <SelectItem key={d} value={d} className="font-mono text-xs font-semibold cursor-pointer">
                             <span className="flex items-center gap-2">
@@ -341,143 +341,164 @@ export function LandingPage() {
                   </Button>
                 </form>
 
-                {/* LIVE MESSAGES INBOX SECTION */}
-                <div className="inbox-workspace pt-4 border-t border-border/60 space-y-4">
-                  {/* Session Inboxes Switcher & Status Header */}
-                  <div className="inbox-workspace-header flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      <Inbox className="w-4 h-4 text-primary" />
-                      <strong className="text-sm font-bold">Session Inboxes ({sessionInboxes.data?.length || 0})</strong>
-                    </div>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Auto-refreshes every 5s
-                    </span>
-                  </div>
-
-                  {/* Active Inboxes Chips Switcher */}
-                  {sessionInboxes.data && sessionInboxes.data.length > 0 && (
-                    <div className="inbox-address-list flex items-center gap-2 overflow-x-auto pb-1">
-                      {sessionInboxes.data.map(item => (
-                        <div
-                          key={item.address}
-                          onClick={() => setActiveAddress(item.address)}
-                          className={`inbox-address-item flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono cursor-pointer transition-all shrink-0 ${
-                            item.address === activeAddress
-                              ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
-                              : 'border-border bg-background hover:bg-muted/50 text-muted-foreground'
-                          }`}
-                        >
-                          <span className="truncate max-w-45">{item.address}</span>
-                          <span className="px-1.5 py-0.2 rounded-full bg-secondary text-foreground text-[10px] font-bold">
-                            {item.messageCount}
-                          </span>
-                          {sessionInboxes.data.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={e => {
-                                e.stopPropagation()
-                                deleteInbox.mutate(item.address, {
-                                  onSuccess: () => toast.success('Inbox removed from session')
-                                })
-                              }}
-                              className="text-muted-foreground hover:text-red-400 ml-1"
-                              title="Remove inbox"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          )}
+                {/* LIVE MESSAGES & SESSION INBOXES SECTION (SPLIT ON DESKTOP) */}
+                <div className="pt-5 border-t border-border/60">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+                    {/* LEFT COLUMN: SESSION INBOXES LIST */}
+                    <div className="md:col-span-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Inbox className="w-4 h-4 text-primary" />
+                          <strong className="text-sm font-bold">Session Inboxes ({sessionInboxes.data?.length || 0})</strong>
                         </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Messages Feed Box */}
-                  <div className="inbox-message-pane rounded-xl border border-border bg-background/50 min-h-55 max-h-90 overflow-y-auto">
-                    {messagesQuery.isLoading ? (
-                      <div className="p-8 text-center text-sm text-muted-foreground">Loading inbox messages…</div>
-                    ) : !messagesQuery.data || messagesQuery.data.length === 0 ? (
-                      <div className="p-10 text-center space-y-2">
-                        <Mail className="w-8 h-8 mx-auto text-muted-foreground/40 animate-bounce" />
-                        <p className="font-semibold text-sm">Your inbox is empty</p>
-                        <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                          Waiting for incoming emails to <span className="font-mono text-primary font-bold">{activeAddress}</span>. Sender emails will appear here automatically.
-                        </p>
                       </div>
-                    ) : (
-                      <div className="inbox-message-list divide-y divide-border/60">
-                        {messagesQuery.data.map(msg => {
-                          const isExpanded = expandedMessageId === msg.id
-                          return (
-                            <div
-                              key={msg.id}
-                              className="inbox-message-row border-b border-border/60 transition-colors"
-                            >
+
+                      <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                        {sessionInboxes.data && sessionInboxes.data.length > 0 ? (
+                          sessionInboxes.data.map(item => {
+                            const isActive = item.address === activeAddress
+                            return (
                               <div
-                                onClick={() => setExpandedMessageId(isExpanded ? null : msg.id)}
-                                className="p-4 cursor-pointer flex items-start justify-between gap-4 group hover:bg-muted/40"
+                                key={item.address}
+                                onClick={() => setActiveAddress(item.address)}
+                                className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between gap-2 ${
+                                  isActive
+                                    ? 'border-primary bg-primary/10 text-foreground font-bold shadow-xs'
+                                    : 'border-border bg-muted/30 hover:bg-muted/60 text-muted-foreground'
+                                }`}
                               >
-                                <div className="space-y-1 min-w-0 flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-bold text-sm text-foreground truncate">{msg.fromAddress || msg.from}</span>
-                                    <span className="text-[11px] text-muted-foreground shrink-0">
-                                      {new Date(msg.receivedAt || msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                  </div>
-                                  <h4 className="font-semibold text-xs text-primary group-hover:underline truncate">
-                                    {msg.subject || '(No Subject)'}
-                                  </h4>
-                                  <p className="text-xs text-muted-foreground line-clamp-1">
-                                    {msg.text || msg.body || (msg.html ? 'Contains HTML formatting' : '(Empty message body)')}
-                                  </p>
+                                <div className="min-w-0 flex-1">
+                                  <span className="truncate block font-mono text-xs text-foreground">{item.address}</span>
+                                  <span className="text-[10px] text-muted-foreground font-normal">
+                                    {item.messageCount} {item.messageCount === 1 ? 'message' : 'messages'}
+                                  </span>
                                 </div>
 
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <Button
-                                    size="xs"
-                                    variant="ghost"
-                                    className="h-7 text-xs"
-                                    onClick={(e) => {
+                                {sessionInboxes.data.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={e => {
                                       e.stopPropagation()
-                                      setSelectedMessage(msg)
+                                      deleteInbox.mutate(item.address, {
+                                        onSuccess: () => toast.success('Inbox removed from session')
+                                      })
                                     }}
-                                    title="Open modal dialog view"
+                                    className="text-muted-foreground hover:text-red-400 p-1 rounded-md transition-colors"
+                                    title="Remove inbox"
                                   >
-                                    <Maximize2 className="w-3.5 h-3.5 mr-1" /> Modal
-                                  </Button>
-                                  <Button size="xs" variant="ghost" className="h-7 w-7 p-0">
-                                    {isExpanded ? <ChevronUp className="w-4 h-4 text-primary" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                                  </Button>
-                                </div>
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                               </div>
-
-                              {/* Accordion Inline Preview */}
-                              {isExpanded && (
-                                <div className="p-4 bg-muted/20 border-t border-border/40 space-y-3">
-                                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                    <span>From: <strong className="text-foreground">{msg.fromAddress || msg.from}</strong></span>
-                                    <span>{new Date(msg.receivedAt || msg.createdAt).toLocaleString()}</span>
-                                  </div>
-                                  <div className="rounded-lg border border-border bg-background p-3.5 text-xs text-foreground leading-relaxed overflow-x-auto max-h-80">
-                                    {msg.html ? (
-                                      <iframe
-                                        srcDoc={msg.html}
-                                        title={msg.subject || 'Email'}
-                                        className="w-full h-64 border-0 rounded bg-white"
-                                        sandbox="allow-same-origin"
-                                      />
-                                    ) : (
-                                      <pre className="font-mono whitespace-pre-wrap text-xs text-muted-foreground">
-                                        {msg.text || msg.body || '(Empty message body)'}
-                                      </pre>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
+                            )
+                          })
+                        ) : (
+                          <div className="p-4 border border-dashed border-border rounded-xl text-center text-xs text-muted-foreground">
+                            No active inboxes
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
+
+                    {/* RIGHT COLUMN: MESSAGES FEED BOX */}
+                    <div className="md:col-span-8 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Mail className="w-4 h-4 text-primary shrink-0" />
+                          <span className="text-xs font-mono text-muted-foreground truncate">
+                            Messages for <strong className="text-foreground font-bold">{activeAddress}</strong>
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground flex items-center gap-1.5 shrink-0">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live 5s
+                        </span>
+                      </div>
+
+                      <div className="rounded-xl border border-border bg-background min-h-64 max-h-96 overflow-y-auto">
+                        {messagesQuery.isLoading ? (
+                          <div className="p-8 text-center text-sm text-muted-foreground">Loading inbox messages…</div>
+                        ) : !messagesQuery.data || messagesQuery.data.length === 0 ? (
+                          <div className="p-10 text-center space-y-2">
+                            <Mail className="w-8 h-8 mx-auto text-muted-foreground/40 animate-bounce" />
+                            <p className="font-semibold text-sm">Your inbox is empty</p>
+                            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                              Waiting for incoming emails to <span className="font-mono text-primary font-bold">{activeAddress}</span>. Sender emails will appear here automatically.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="divide-y divide-border/60">
+                            {messagesQuery.data.map(msg => {
+                              const isExpanded = expandedMessageId === msg.id
+                              return (
+                                <div key={msg.id} className="border-b border-border/60 transition-colors">
+                                  <div
+                                    onClick={() => setExpandedMessageId(isExpanded ? null : msg.id)}
+                                    className="p-3.5 cursor-pointer flex items-start justify-between gap-3 group hover:bg-muted/40"
+                                  >
+                                    <div className="space-y-1 min-w-0 flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-bold text-sm text-foreground truncate">{msg.fromAddress || msg.from}</span>
+                                        <span className="text-[11px] text-muted-foreground shrink-0">
+                                          {new Date(msg.receivedAt || msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                      </div>
+                                      <h4 className="font-semibold text-xs text-primary group-hover:underline truncate">
+                                        {msg.subject || '(No Subject)'}
+                                      </h4>
+                                      <p className="text-xs text-muted-foreground line-clamp-1">
+                                        {msg.text || msg.body || (msg.html ? 'Contains HTML formatting' : '(Empty message body)')}
+                                      </p>
+                                    </div>
+
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <Button
+                                        size="xs"
+                                        variant="ghost"
+                                        className="h-7 text-xs"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setSelectedMessage(msg)
+                                        }}
+                                        title="Open full view modal"
+                                      >
+                                        <Maximize2 className="w-3.5 h-3.5 mr-1" /> Full View
+                                      </Button>
+                                      <Button size="xs" variant="ghost" className="h-7 w-7 p-0">
+                                        {isExpanded ? <ChevronUp className="w-4 h-4 text-primary" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                                      </Button>
+                                    </div>
+                                  </div>
+
+                                  {/* Accordion Inline Preview */}
+                                  {isExpanded && (
+                                    <div className="p-4 bg-muted/20 border-t border-border/40 space-y-3">
+                                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                        <span>From: <strong className="text-foreground">{msg.fromAddress || msg.from}</strong></span>
+                                        <span>{new Date(msg.receivedAt || msg.createdAt).toLocaleString()}</span>
+                                      </div>
+                                      <div className="rounded-lg border border-border bg-background p-3.5 text-xs text-foreground leading-relaxed overflow-x-auto max-h-80">
+                                        {msg.html ? (
+                                          <iframe
+                                            srcDoc={msg.html}
+                                            title={msg.subject || 'Email'}
+                                            className="w-full h-64 border-0 rounded bg-white"
+                                            sandbox="allow-same-origin"
+                                          />
+                                        ) : (
+                                          <pre className="font-mono whitespace-pre-wrap text-xs text-muted-foreground">
+                                            {msg.text || msg.body || '(Empty message body)'}
+                                          </pre>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -608,7 +629,7 @@ export function LandingPage() {
                 className="p-6 rounded-2xl border border-border bg-card/60 hover:border-primary/40 transition-all shadow-xs hover:shadow-lg space-y-3"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <Trash2 className="w-5 h-5" />
                   </div>
                   <h3 className="text-lg font-bold">Auto-Expiring</h3>

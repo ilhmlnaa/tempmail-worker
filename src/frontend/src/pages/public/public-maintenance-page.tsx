@@ -28,7 +28,7 @@ export function PublicMaintenancePage() {
         </div>
 
         {/* Maintenance Card */}
-        <Card className="border-primary/30 bg-card/90 backdrop-blur-xl shadow-2xl p-6 space-y-6">
+        <Card className="border-primary/30 bg-card shadow-2xl p-6 space-y-6">
           <CardHeader className="p-0 space-y-4">
             {/* Glowing Icon Container */}
             <div className="mx-auto w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center shadow-inner relative">

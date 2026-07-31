@@ -74,7 +74,7 @@ export function PublicHeader() {
 
   return (
     <header
-      className={`sticky top-0 z-40 w-full border-b border-blue-500/30 bg-background/80 backdrop-blur-xl transition-all duration-300 ${
+      className={`sticky top-0 z-40 w-full border-b border-blue-500/30 bg-background transition-all duration-300 ${
         visible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
       }`}
     >
