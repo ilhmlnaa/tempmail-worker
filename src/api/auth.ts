@@ -9,7 +9,7 @@ export async function requireAuth(c: Context<{ Bindings: Env }>) {
   const sid = c.req.header('x-session-id') || getCookie(c, SESSION_COOKIE)
   if (!sid) {
     if (c.req.header('accept')?.includes('text/html')) {
-      return c.redirect('/login')
+      return c.redirect('/legacy/login')
     }
     return c.json({ error: 'Unauthorized' }, 401)
   }
@@ -18,7 +18,7 @@ export async function requireAuth(c: Context<{ Bindings: Env }>) {
   if (!(await isValidAdminSession(c.env.DB, sid))) {
     clearSessionCookie(c)
     if (c.req.header('accept')?.includes('text/html')) {
-      return c.redirect('/login')
+      return c.redirect('/legacy/login')
     }
     return c.json({ error: 'Unauthorized' }, 401)
   }

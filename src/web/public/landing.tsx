@@ -14,11 +14,11 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
   <meta name="color-scheme" content="dark" />
   <title>VoidMail — Instant Disposable Temporary Email Service</title>
   <meta name="description" content="Generate instant, anonymous temporary email addresses with VoidMail. Protect your primary inbox from spam, ads, and data leaks." />
-  <link rel="icon" type="image/png" href="/logo.png" />
+  <link rel="icon" type="image/png" href="/legacy/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/legacy/styles.css" />
   <script src="/vendor/lucide-0.468.0.min.js"></script>
   ${turnstileSiteKey ? html`<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>` : ''}
 </head>
@@ -28,14 +28,14 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
   <header class="landing-header">
     <div class="landing-container nav-container">
       <div class="landing-logo">
-        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" />
+        <img src="/legacy/logo.png" alt="VoidMail Logo" class="brand-logo-img" />
         <span>Void<span style="color:var(--primary)">Mail</span></span>
       </div>
       <nav class="landing-nav">
         <a href="#generator" id="nav-gen" class="active">Instant Mail</a>
         <a href="#domains" id="nav-domains">Domains</a>
         <a href="#features" id="nav-features">Features</a>
-        <a href="/docs" id="nav-api">Developer API</a>
+        <a href="/legacy/docs" id="nav-api">Developer API</a>
       </nav>
       <button class="landing-mobile-menu-btn" onclick="toggleLandingDrawer(true)" aria-label="Open Menu">
         <i data-lucide="menu"></i>
@@ -47,7 +47,7 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
   <aside class="landing-drawer" id="landingDrawer">
     <div class="landing-drawer-header">
       <div class="landing-logo">
-        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" />
+        <img src="/legacy/logo.png" alt="VoidMail Logo" class="brand-logo-img" />
         <span>Void<span style="color:var(--primary)">Mail</span></span>
       </div>
       <button class="mobile-close-btn" onclick="toggleLandingDrawer(false)" aria-label="Close Menu">
@@ -58,7 +58,7 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
       <a href="#generator" onclick="toggleLandingDrawer(false)"><i data-lucide="mail"></i> Instant Mail</a>
       <a href="#domains" onclick="toggleLandingDrawer(false)"><i data-lucide="globe"></i> Domains</a>
       <a href="#features" onclick="toggleLandingDrawer(false)"><i data-lucide="zap"></i> Features</a>
-      <a href="/docs" onclick="toggleLandingDrawer(false)"><i data-lucide="book-open"></i> Developer API</a>
+      <a href="/legacy/docs" onclick="toggleLandingDrawer(false)"><i data-lucide="book-open"></i> Developer API</a>
     </nav>
   </aside>
 
@@ -255,7 +255,7 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
       </div>
 
       <div style="text-align:center;margin-top:28px">
-        <a href="/docs" class="btn-primary" style="padding:12px 28px;font-size:0.95rem;text-decoration:none">
+        <a href="/legacy/docs" class="btn-primary" style="padding:12px 28px;font-size:0.95rem;text-decoration:none">
           <i data-lucide="book-open" class="icon-inline" style="color:white;margin-right:8px"></i> Explore API Docs
         </a>
       </div>
@@ -267,7 +267,7 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
       <div class="footer-main">
         <div class="footer-brand-block">
           <a href="/" class="footer-brand" aria-label="VoidMail home">
-            <img src="/logo.png" alt="" class="brand-logo-img-sm" />
+            <img src="/legacy/logo.png" alt="" class="brand-logo-img-sm" />
             <span>Void<span>Mail</span></span>
           </a>
           <p>Instant disposable inboxes for sign-ups, testing, and keeping unwanted mail away from your primary address.</p>
@@ -287,7 +287,7 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
           </nav>
           <nav class="footer-link-group" aria-label="Resource links">
             <strong>Resources</strong>
-            <a href="/docs">Developer API</a>
+            <a href="/legacy/docs">Developer API</a>
             <a href="/.well-known/security.txt">Security</a>
             <a href="mailto:security@hamdiv.me">Report an issue</a>
           </nav>

@@ -7,7 +7,7 @@ export function LoginPage({ error }: { error?: string }) {
     children: html`
     <div class="auth-card">
       <h1 style="display:flex;align-items:center;justify-content:center;gap:12px;">
-        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img-lg" /> 
+        <img src="/legacy/logo.png" alt="VoidMail Logo" class="brand-logo-img-lg" />
         <span>Void<span style="color:var(--primary)">Mail</span></span>
       </h1>
       <p>Enter your admin password to access the portal</p>
@@ -36,10 +36,10 @@ export function SetupPage({ error }: { error?: string }) {
     children: html`
     <div class="auth-card">
       <h1 style="display:flex;align-items:center;justify-content:center;gap:12px;">
-        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img-lg" /> <span>First Run Setup</span>
+        <img src="/legacy/logo.png" alt="VoidMail Logo" class="brand-logo-img-lg" /> <span>First Run Setup</span>
       </h1>
       <p>Set a strong admin password to secure your VoidMail portal.</p>
-      <form method="post" action="/setup">
+      <form method="post" action="/legacy/setup">
         <input type="password" name="password" class="auth-input" placeholder="New Password (min 8 chars)" required minlength="8" autofocus />
         <input type="password" name="confirm" class="auth-input" placeholder="Confirm Password" required minlength="8" />
         <button type="submit" class="auth-btn">Save & Continue</button>

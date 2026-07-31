@@ -20,7 +20,7 @@ export function InboxesListPage({
   inboxes: Inbox[]; totalInboxes: number; totalMessages: number; filteredTotal: number; currentPage: number; search: string; messageFilter: 'all' | 'empty' | 'has-messages'; timezone?: string; timeFormat?: string
 }) {
   const totalPages = Math.ceil(filteredTotal / 20) || 1
-  const baseUrl = '/admin/inboxes'
+  const baseUrl = '/legacy/admin/inboxes'
   const filterParams = new URLSearchParams()
   if (search) filterParams.set('q', search)
   if (messageFilter !== 'all') filterParams.set('messages', messageFilter)
@@ -58,7 +58,7 @@ export function InboxesListPage({
     </div>
 
     <div class="panel" style="margin-bottom: 24px; padding: 16px;">
-      <form action="/admin/inboxes" method="GET" style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <form action="/legacy/admin/inboxes" method="GET" style="display: flex; gap: 12px; flex-wrap: wrap;">
         <div style="flex: 1; min-width: 200px;">
           <input type="text" name="q" value="${escape(search)}" placeholder="Search by address or domain..." style="width: 100%;" />
         </div>
@@ -68,7 +68,7 @@ export function InboxesListPage({
           <option value="has-messages" ${messageFilter === 'has-messages' ? 'selected' : ''}>Has Messages (>0 msgs)</option>
         </select>
         <button type="submit" class="btn-primary">Filter</button>
-        ${search || messageFilter !== 'all' ? html`<a href="/admin/inboxes" class="btn-secondary">Clear</a>` : ''}
+        ${search || messageFilter !== 'all' ? html`<a href="/legacy/admin/inboxes" class="btn-secondary">Clear</a>` : ''}
       </form>
     </div>
 
@@ -79,13 +79,13 @@ export function InboxesListPage({
           ${inboxes.map(i => html`
             <div class="inbox-item" id="row-${i.address}">
               <div class="inbox-info">
-                <h4><a href="/admin/inbox/${encodeURIComponent(i.address)}">${i.address}</a></h4>
+                <h4><a href="/legacy/admin/inbox/${encodeURIComponent(i.address)}">${i.address}</a></h4>
                 <p>Created: ${formatDate(i.createdAt, timezone, timeFormat)}</p>
               </div>
               <div class="inbox-meta">
                 <span class="badge">${i.messageCount || 0} msgs</span>
                 <div class="actions">
-                  <a href="/admin/inbox/${encodeURIComponent(i.address)}" class="btn-icon" title="View Inbox"><i data-lucide="eye"></i></a>
+                  <a href="/legacy/admin/inbox/${encodeURIComponent(i.address)}" class="btn-icon" title="View Inbox"><i data-lucide="eye"></i></a>
                   ${IconButton({ icon: 'trash-2', onclick: `del('${i.address}')`, title: 'Delete', variant: 'danger' })}
                 </div>
               </div>

@@ -33,7 +33,7 @@ export function InboxPage({ address, messages, timezone = 'Asia/Jakarta', timeFo
       <div class="actions" style="gap:8px">
         ${IconButton({ icon: 'clipboard', onclick: 'copyAddress()', title: 'Copy address' })}
         ${IconButton({ icon: 'refresh-cw', onclick: 'refresh()', title: 'Refresh' })}
-        <a href="/admin" class="btn-icon" title="Dashboard"><i data-lucide="arrow-left"></i></a>
+        <a href="/legacy/admin" class="btn-icon" title="Dashboard"><i data-lucide="arrow-left"></i></a>
       </div>
     </div>
 

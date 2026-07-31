@@ -28,7 +28,7 @@ export function MobileHeader() {
   return html`
     <div class="mobile-header">
       <div class="mobile-logo">
-        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" /> 
+        <img src="/legacy/logo.png" alt="VoidMail Logo" class="brand-logo-img" />
         <span>Void<span style="color:var(--primary)">Mail</span></span>
       </div>
       <button class="mobile-menu-btn" onclick="toggleSidebar(true)" aria-label="Open Menu">
@@ -44,7 +44,7 @@ export function SidebarNav() {
     <aside class="sidebar" id="appSidebar">
       <div class="sidebar-logo">
         <div style="display:flex;align-items:center;gap:10px">
-          <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" /> 
+          <img src="/legacy/logo.png" alt="VoidMail Logo" class="brand-logo-img" />
           <span>Void<span style="color:var(--primary)">Mail</span></span>
         </div>
         <button class="mobile-close-btn" onclick="toggleSidebar(false)" aria-label="Close Menu">
@@ -52,19 +52,19 @@ export function SidebarNav() {
         </button>
       </div>
       <nav class="sidebar-nav">
-        <a href="/admin" id="nav-dashboard" onclick="toggleSidebar(false)">
+        <a href="/legacy/admin" id="nav-dashboard" onclick="toggleSidebar(false)">
           <i data-lucide="layout-dashboard"></i> Overview
         </a>
-        <a href="/admin/inboxes" id="nav-inboxes" onclick="toggleSidebar(false)">
+        <a href="/legacy/admin/inboxes" id="nav-inboxes" onclick="toggleSidebar(false)">
           <i data-lucide="inbox"></i> Inboxes
         </a>
-        <a href="/admin/settings" id="nav-settings" onclick="toggleSidebar(false)">
+        <a href="/legacy/admin/settings" id="nav-settings" onclick="toggleSidebar(false)">
           <i data-lucide="settings"></i> Settings
         </a>
-        <a href="/admin/maintenance" id="nav-maintenance" onclick="toggleSidebar(false)">
+        <a href="/legacy/admin/maintenance" id="nav-maintenance" onclick="toggleSidebar(false)">
           <i data-lucide="wrench"></i> Maintenance
         </a>
-        <a href="/admin/docs" id="nav-docs" onclick="toggleSidebar(false)">
+        <a href="/legacy/admin/docs" id="nav-docs" onclick="toggleSidebar(false)">
           <i data-lucide="book-open"></i> API Docs
         </a>
       </nav>

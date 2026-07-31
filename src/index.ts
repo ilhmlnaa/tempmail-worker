@@ -36,12 +36,12 @@ const app = new Hono<{ Bindings: Env }>()
 app.use('*', securityMiddleware)
 
 app.use('*', async (c, next) => {
-  const isBypassedPath = c.req.path.startsWith('/admin') || c.req.path.startsWith('/auth') || c.req.path.startsWith('/vendor/') || c.req.path === '/setup' || c.req.path === '/styles.css' || c.req.path === '/logo.png' || c.req.path === '/.well-known/security.txt'
+  const isBypassedPath = c.req.path.startsWith('/legacy/admin') || c.req.path.startsWith('/auth') || c.req.path.startsWith('/vendor/') || c.req.path === '/legacy/setup' || c.req.path === '/legacy/styles.css' || c.req.path === '/legacy/logo.png' || c.req.path === '/.well-known/security.txt'
   if (!isBypassedPath) {
     const { getMaintenanceConfig } = await import('./db/queries')
     const config = await getMaintenanceConfig(c.env.DB)
 
-    if (c.req.query('preview_maintenance') === 'true' && c.req.path === '/') {
+    if (c.req.query('preview_maintenance') === 'true' && c.req.path === '/legacy') {
       const timezone = await getSetting(c.env.DB, 'timezone', 'Asia/Jakarta')
       const timeFormat = await getSetting(c.env.DB, 'time_format', '24')
       return c.html(MaintenancePage({ config, timezone, timeFormat }))
@@ -71,11 +71,11 @@ app.use('*', async (c, next) => {
 })
 
 // ── Static assets ─────────────────────────────────────────────
-app.get('/styles.css', (c) => {
+app.get('/legacy/styles.css', (c) => {
   return c.text(css, 200, { 'Content-Type': 'text/css; charset=utf-8' })
 })
 
-app.get('/logo.png', (c) => {
+app.get('/legacy/logo.png', (c) => {
   return new Response(logoBytes, {
     headers: {
       'Content-Type': 'image/png',
@@ -95,16 +95,16 @@ app.get('/.well-known/security.txt', (c) => {
 
 
 
-app.get('/setup', async (c) => {
+app.get('/legacy/setup', async (c) => {
   const { isAppConfigured } = await import('./api/auth')
-  if (await isAppConfigured(c)) return c.redirect('/login')
+  if (await isAppConfigured(c)) return c.redirect('/legacy/login')
   const { SetupPage } = await import('./web/public/login')
   return c.html(SetupPage({}))
 })
 
-app.post('/setup', async (c) => {
+app.post('/legacy/setup', async (c) => {
   const { isAppConfigured } = await import('./api/auth')
-  if (await isAppConfigured(c)) return c.redirect('/login')
+  if (await isAppConfigured(c)) return c.redirect('/legacy/login')
   
   const body = await c.req.parseBody()
   const password = (body as Record<string, string>).password || ''
@@ -122,15 +122,15 @@ app.post('/setup', async (c) => {
   await createSession(c.env.DB, sid, true)
   setSessionCookie(c, sid)
   
-  return c.redirect('/admin')
+  return c.redirect('/legacy/admin')
 })
 
 app.use('*', async (c, next) => {
   const path = c.req.path
-  if (path.startsWith('/admin')) {
+  if (path.startsWith('/legacy/admin')) {
     const { isAppConfigured } = await import('./api/auth')
     if (!(await isAppConfigured(c))) {
-      return c.redirect('/setup')
+      return c.redirect('/legacy/setup')
     }
   }
   await next()
@@ -140,7 +140,7 @@ app.use('*', async (c, next) => {
 app.route('/', api)
 
 // ── Public SaaS Landing Page ──────────────────────────────────
-app.get('/', async (c) => {
+app.get('/legacy', async (c) => {
   const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')
   let domains = domainsStr.split(',').map(d => d.trim()).filter(Boolean)
   const publicAllowedDomainsStr = await getSetting(c.env.DB, 'public_allowed_domains', '*')
@@ -158,9 +158,9 @@ app.get('/', async (c) => {
 })
 
 // ── Auth pages ────────────────────────────────────────────────
-app.get('/login', async (c) => {
+app.get('/legacy/login', async (c) => {
   const { isAppConfigured } = await import('./api/auth')
-  if (!(await isAppConfigured(c))) return c.redirect('/setup')
+  if (!(await isAppConfigured(c))) return c.redirect('/legacy/setup')
   return c.html(LoginPage({}))
 })
 
@@ -189,21 +189,21 @@ app.post('/auth/login', async (c) => {
   setSessionCookie(c, sid)
   
   if (contentType.includes('application/json')) {
-    return c.json({ ok: true, redirect: '/admin' })
+    return c.json({ ok: true, redirect: '/legacy/admin' })
   }
-  return c.redirect('/admin')
+  return c.redirect('/legacy/admin')
 })
 
 app.post('/auth/logout', (c) => {
   clearSessionCookie(c)
-  return c.redirect('/login')
+  return c.redirect('/legacy/login')
 })
 
 // ── Legacy Redirects ─────────────────────────────────────────
-app.get('/dashboard', (c) => c.redirect('/admin'))
+app.get('/legacy/dashboard', (c) => c.redirect('/legacy/admin'))
 
 // ── Admin Portal Web Pages (auth required) ───────────────────
-app.get('/admin/apikeys/:id', async (c) => {
+app.get('/legacy/admin/apikeys/:id', async (c) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
@@ -239,7 +239,7 @@ app.get('/admin/apikeys/:id', async (c) => {
   }
 })
 
-app.get('/admin', async (c) => {
+app.get('/legacy/admin', async (c) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
@@ -269,9 +269,9 @@ app.get('/admin', async (c) => {
   }
 })
 
-app.get('/admin/dashboard', (c) => c.redirect('/admin'))
+app.get('/legacy/admin/dashboard', (c) => c.redirect('/legacy/admin'))
 
-app.get('/admin/settings', async (c) => {
+app.get('/legacy/admin/settings', async (c) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
   
@@ -306,7 +306,7 @@ app.get('/admin/settings', async (c) => {
   }))
 })
 
-app.get('/admin/maintenance', async (c) => {
+app.get('/legacy/admin/maintenance', async (c) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
@@ -327,10 +327,10 @@ app.get('/admin/maintenance', async (c) => {
   }))
 })
 
-app.get('/docs', (c) => c.html(DocsPage({ session: false })))
-app.get('/admin/docs', (c) => c.html(DocsPage({ session: true })))
+app.get('/legacy/docs', (c) => c.html(DocsPage({ session: false })))
+app.get('/legacy/admin/docs', (c) => c.html(DocsPage({ session: true })))
 
-app.get('/admin/inboxes', async (c) => {
+app.get('/legacy/admin/inboxes', async (c) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
@@ -367,7 +367,7 @@ app.get('/admin/inboxes', async (c) => {
   }
 })
 
-app.get('/admin/inbox/:addr', async (c) => {
+app.get('/legacy/admin/inbox/:addr', async (c) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
 
@@ -382,7 +382,7 @@ app.get('/admin/inbox/:addr', async (c) => {
 })
 
 app.notFound((c) => {
-  const session = c.req.path.startsWith('/admin')
+  const session = c.req.path.startsWith('/legacy/admin')
   return c.html(NotFoundPage({ session }), 404)
 })
 

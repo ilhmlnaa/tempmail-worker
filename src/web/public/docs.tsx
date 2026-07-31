@@ -48,7 +48,7 @@ export function DocsPage({ session = false }: { session?: boolean }) {
     </style>
 
     <div id="swagger-ui"></div>
-    
+
     <script src="/vendor/swagger-ui-5.17.14-bundle.js"></script>
     <script>
       window.onload = () => {
@@ -177,25 +177,25 @@ export function DocsPage({ session = false }: { session?: boolean }) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Developer REST API Docs — VoidMail</title>
-  <link rel="icon" type="image/png" href="/logo.png" />
+  <link rel="icon" type="image/png" href="/legacy/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/legacy/styles.css" />
   <script src="/vendor/lucide-0.468.0.min.js"></script>
 </head>
 <body class="landing-body">
   <header class="landing-header">
     <div class="landing-container nav-container">
       <div class="landing-logo">
-        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" /> 
+        <img src="/legacy/logo.png" alt="VoidMail Logo" class="brand-logo-img" />
         <span>Void<span style="color:var(--primary)">Mail</span></span>
       </div>
       <nav class="landing-nav">
-        <a href="/#generator">Instant Mail</a>
-        <a href="/#domains">Domains</a>
-        <a href="/#features">Features</a>
-        <a href="/docs" class="active">Developer API</a>
+        <a href="/legacy#generator">Instant Mail</a>
+        <a href="/legacy#domains">Domains</a>
+        <a href="/legacy#features">Features</a>
+        <a href="/legacy/docs" class="active">Developer API</a>
       </nav>
       <button class="landing-mobile-menu-btn" onclick="toggleLandingDrawer(true)" aria-label="Open Menu">
         <i data-lucide="menu"></i>
@@ -207,7 +207,7 @@ export function DocsPage({ session = false }: { session?: boolean }) {
   <aside class="landing-drawer" id="landingDrawer">
     <div class="landing-drawer-header">
       <div class="landing-logo">
-        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img" /> 
+        <img src="/legacy/logo.png" alt="VoidMail Logo" class="brand-logo-img" />
         <span>Void<span style="color:var(--primary)">Mail</span></span>
       </div>
       <button class="mobile-close-btn" onclick="toggleLandingDrawer(false)" aria-label="Close Menu">
@@ -215,10 +215,10 @@ export function DocsPage({ session = false }: { session?: boolean }) {
       </button>
     </div>
     <nav class="landing-drawer-nav">
-      <a href="/#generator" onclick="toggleLandingDrawer(false)"><i data-lucide="mail"></i> Instant Mail</a>
-      <a href="/#domains" onclick="toggleLandingDrawer(false)"><i data-lucide="globe"></i> Domains</a>
-      <a href="/#features" onclick="toggleLandingDrawer(false)"><i data-lucide="zap"></i> Features</a>
-      <a href="/docs" onclick="toggleLandingDrawer(false)" class="active"><i data-lucide="book-open"></i> Developer API</a>
+      <a href="/legacy#generator" onclick="toggleLandingDrawer(false)"><i data-lucide="mail"></i> Instant Mail</a>
+      <a href="/legacy#domains" onclick="toggleLandingDrawer(false)"><i data-lucide="globe"></i> Domains</a>
+      <a href="/legacy#features" onclick="toggleLandingDrawer(false)"><i data-lucide="zap"></i> Features</a>
+      <a href="/legacy/docs" onclick="toggleLandingDrawer(false)" class="active"><i data-lucide="book-open"></i> Developer API</a>
     </nav>
   </aside>
 
@@ -244,7 +244,7 @@ export function DocsPage({ session = false }: { session?: boolean }) {
   <footer class="landing-footer">
     <div class="landing-container footer-content">
       <div style="display:flex;align-items:center;gap:10px">
-        <img src="/logo.png" alt="VoidMail Logo" class="brand-logo-img-sm" />
+        <img src="/legacy/logo.png" alt="VoidMail Logo" class="brand-logo-img-sm" />
         <span style="font-weight:700;font-size:1.1rem">VoidMail</span>
       </div>
       <p style="color:var(--text-dim);font-size:0.85rem">

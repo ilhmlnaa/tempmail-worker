@@ -10,17 +10,17 @@ export function MaintenancePage({ config, timezone, timeFormat }: { config: Main
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${config.pageTitle} — VoidMail</title>
   <meta name="robots" content="noindex,nofollow" />
-  <link rel="icon" type="image/png" href="/logo.png" />
+  <link rel="icon" type="image/png" href="/legacy/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/legacy/styles.css" />
   <script src="/vendor/lucide-0.468.0.min.js"></script>
 </head>
 <body class="maintenance-body">
   <main class="maintenance-shell">
     <div class="maintenance-brand">
-      <img src="/logo.png" alt="VoidMail Logo" />
+      <img src="/legacy/logo.png" alt="VoidMail Logo" />
       <span>Void<span>Mail</span></span>
     </div>
     <div class="maintenance-card">
