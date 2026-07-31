@@ -4,8 +4,8 @@
   "description": "MAILLDEZ-compatible temp mail API + Web Dashboard on Cloudflare Workers",
   "type": "module",
   "scripts": {
-    "deploy": "npm run build:ui && wrangler deploy",
-    "dev": "npm run build:ui && wrangler dev",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
     "build:ui": "cd src/frontend && npm run build",
     "db:create": "wrangler d1 create tempmail-db",
     "db:init": "wrangler d1 execute tempmail-db --remote --file=src/db/schema.sql",

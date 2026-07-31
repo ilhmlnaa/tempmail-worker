@@ -2,6 +2,10 @@ name = "tempmail-worker"
 compatibility_date = "2024-10-22"
 main = "src/index.ts"
 
+[build]
+command = "npm run build:ui"
+watch_dir = "src/frontend/src"
+
 [triggers]
 crons = ["0 * * * *"]
 
