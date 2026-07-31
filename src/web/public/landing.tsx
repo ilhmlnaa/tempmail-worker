@@ -9,7 +9,9 @@ export function LandingPage({ domains, turnstileSiteKey, metrics, retentionHours
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f19" />
+  <meta name="color-scheme" content="dark" />
   <title>VoidMail — Instant Disposable Temporary Email Service</title>
   <meta name="description" content="Generate instant, anonymous temporary email addresses with VoidMail. Protect your primary inbox from spam, ads, and data leaks." />
   <link rel="icon" type="image/png" href="/logo.png" />

@@ -22,6 +22,7 @@ export const css = `
   --radius-sm: 8px;
   --shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
   --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -31,12 +32,15 @@ export const css = `
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
 
-html, body {
+html {
+  background: var(--bg);
+}
+
+body {
   margin: 0;
   padding: 0;
   font-family: 'Lexend', system-ui, -apple-system, sans-serif;
-  background: radial-gradient(circle at 50% 0%, #172033 0%, var(--bg) 70%);
-  background-attachment: fixed;
+  background: radial-gradient(circle at 50% 0%, #172033 0%, var(--bg) 70%) no-repeat var(--bg);
   color: var(--text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -49,7 +53,7 @@ body.admin-body {
 
 body.landing-body {
   min-height: 100vh;
-  overflow-y: auto;
+  min-height: 100dvh;
 }
 
 a { color: var(--text); text-decoration: none; }
@@ -2420,6 +2424,13 @@ svg.lucide { stroke-width: 2; }
 }
 
 @media (max-width: 768px) {
+  .landing-header {
+    position: fixed;
+    right: 0;
+    left: 0;
+    width: 100%;
+  }
+  .landing-hero { padding-top: 150px; }
   .hero-title { font-size: 2.25rem; }
   .hero-subtitle { font-size: 0.95rem; }
   .landing-nav { display: none !important; }
@@ -2460,10 +2471,44 @@ svg.lucide { stroke-width: 2; }
   .inbox-addr { overflow: visible; text-overflow: clip; }
   .widget-messages-container { min-height: 260px; }
   .footer-main { grid-template-columns: 1fr; gap: 34px; }
-  .footer-bottom { align-items: flex-start; flex-direction: column; }
+  .footer-bottom {
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+  }
 }
 
 @media (max-width: 480px) {
+  .hero-stats-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .hero-stat-box {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 8px;
+    min-width: 0;
+    padding: 13px 9px 12px;
+    border-color: rgba(59, 130, 246, 0.2);
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.72));
+  }
+  .hero-stat-box svg {
+    grid-row: 1;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+  }
+  .hero-stat-value {
+    align-self: center;
+    font-size: 1.1rem;
+  }
+  .hero-stat-label {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    text-align: left;
+  }
   .landing-footer { padding-top: 48px; }
   .footer-links-grid { gap: 24px; }
 }
