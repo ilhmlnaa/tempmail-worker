@@ -18,7 +18,19 @@ const publicApi = new Hono<{ Bindings: Env }>()
 
 publicApi.get('/config', async (c) => {
   const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')
-  const domains = domainsStr.split(',').map(d => d.trim()).filter(Boolean)
+  const allDomains = domainsStr.split(',').map(d => d.trim()).filter(Boolean)
+
+  const allowedDomainsStr = await getSetting(c.env.DB, 'public_allowed_domains', '*')
+  let domains = allDomains
+
+  if (allowedDomainsStr && allowedDomainsStr !== '*' && allowedDomainsStr.trim() !== '') {
+    const allowedList = allowedDomainsStr.split(',').map(d => d.trim().toLowerCase()).filter(Boolean)
+    const filtered = allDomains.filter(d => allowedList.includes(d.toLowerCase()))
+    if (filtered.length > 0) {
+      domains = filtered
+    }
+  }
+
   const retentionHours = parseInt(await getSetting(c.env.DB, 'cleanup_retention_hours', '24'), 10)
   const metrics = await getAppMetrics(c.env.DB)
   const turnstileSiteKey = c.env.TURNSTILE_SITE_KEY || null

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import {
   Copy,
   RefreshCw,
@@ -223,38 +223,38 @@ export function LandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 max-w-3xl mx-auto"
+              className="grid grid-cols-3 gap-2 sm:gap-4 max-w-3xl mx-auto"
             >
-              <motion.div whileHover={{ y: -3 }} className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card flex items-center gap-3 shadow-xs transition-shadow hover:shadow-md">
+              <motion.div whileHover={{ y: -3 }} className="p-3 sm:p-4 rounded-xl border border-border/80 bg-card flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-3 shadow-xs transition-shadow hover:shadow-md">
                 <div className="p-2 sm:p-2.5 rounded-lg bg-primary/10 text-primary shrink-0">
                   <Globe className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[11px] sm:text-xs text-muted-foreground font-medium block truncate">Active Domains</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground font-medium block truncate">Active Domains</span>
                   <strong className="block text-base sm:text-lg font-black leading-none mt-0.5 sm:mt-1">
                     {config.isLoading ? '…' : (config.data?.domains?.length || 1)}
                   </strong>
                 </div>
               </motion.div>
 
-              <motion.div whileHover={{ y: -3 }} className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card flex items-center gap-3 shadow-xs transition-shadow hover:shadow-md">
-                <div className="p-2 sm:p-2.5 rounded-lg bg-cyan-500/10 text-cyan-400 shrink-0">
+              <motion.div whileHover={{ y: -3 }} className="p-3 sm:p-4 rounded-xl border border-border/80 bg-card flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-3 shadow-xs transition-shadow hover:shadow-md">
+                <div className="p-2 sm:p-2.5 rounded-lg bg-primary/10 text-primary shrink-0">
                   <Mail className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[11px] sm:text-xs text-muted-foreground font-medium block truncate">Messages</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground font-medium block truncate">Messages</span>
                   <strong className="block text-base sm:text-lg font-black leading-none mt-0.5 sm:mt-1">
                     {config.isLoading ? '…' : (config.data?.lifetimeMessages !== undefined ? config.data.lifetimeMessages.toLocaleString() : '0')}
                   </strong>
                 </div>
               </motion.div>
 
-              <motion.div whileHover={{ y: -3 }} className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card flex items-center gap-3 col-span-2 sm:col-span-1 shadow-xs transition-shadow hover:shadow-md">
+              <motion.div whileHover={{ y: -3 }} className="p-3 sm:p-4 rounded-xl border border-border/80 bg-card flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-3 shadow-xs transition-shadow hover:shadow-md">
                 <div className="p-2 sm:p-2.5 rounded-lg bg-primary/10 text-primary shrink-0">
                   <Clock className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[11px] sm:text-xs text-muted-foreground font-medium block truncate">Retention</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground font-medium block truncate">Retention</span>
                   <strong className="block text-base sm:text-lg font-black leading-none mt-0.5 sm:mt-1">
                     {config.isLoading ? '…' : `${config.data?.retentionHours || 24}h`}
                   </strong>
@@ -401,16 +401,16 @@ export function LandingPage() {
                     </div>
 
                     {/* RIGHT COLUMN: MESSAGES FEED BOX */}
-                    <div className="md:col-span-8 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Mail className="w-4 h-4 text-primary shrink-0" />
-                          <span className="text-xs font-mono text-muted-foreground truncate">
+                    <div className="md:col-span-8 space-y-3 min-w-0">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <Mail className="w-4 h-4 text-primary shrink-0 hidden sm:block" />
+                          <span className="text-[11px] sm:text-xs font-mono text-muted-foreground truncate">
                             Messages for <strong className="text-foreground font-bold">{activeAddress}</strong>
                           </span>
                         </div>
-                        <span className="text-[11px] text-muted-foreground flex items-center gap-1.5 shrink-0">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live 5s
+                        <span className="text-[10px] sm:text-[11px] text-muted-foreground flex items-center gap-1.5 shrink-0">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" /> Live 5s
                         </span>
                       </div>
 
@@ -470,28 +470,38 @@ export function LandingPage() {
                                   </div>
 
                                   {/* Accordion Inline Preview */}
-                                  {isExpanded && (
-                                    <div className="p-4 bg-muted/20 border-t border-border/40 space-y-3">
-                                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                        <span>From: <strong className="text-foreground">{msg.fromAddress || msg.from}</strong></span>
-                                        <span>{new Date(msg.receivedAt || msg.createdAt).toLocaleString()}</span>
-                                      </div>
-                                      <div className="rounded-lg border border-border bg-background p-3.5 text-xs text-foreground leading-relaxed overflow-x-auto max-h-80">
-                                        {msg.html ? (
-                                          <iframe
-                                            srcDoc={msg.html}
-                                            title={msg.subject || 'Email'}
-                                            className="w-full h-64 border-0 rounded bg-white"
-                                            sandbox="allow-same-origin"
-                                          />
-                                        ) : (
-                                          <pre className="font-mono whitespace-pre-wrap text-xs text-muted-foreground">
-                                            {msg.text || msg.body || '(Empty message body)'}
-                                          </pre>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
+                                  <AnimatePresence initial={false}>
+                                    {isExpanded && (
+                                      <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                                        className="overflow-hidden"
+                                      >
+                                        <div className="p-4 bg-muted/20 border-t border-border/40 space-y-3">
+                                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                            <span>From: <strong className="text-foreground">{msg.fromAddress || msg.from}</strong></span>
+                                            <span>{new Date(msg.receivedAt || msg.createdAt).toLocaleString()}</span>
+                                          </div>
+                                          <div className="rounded-lg border border-border bg-background p-3.5 text-xs text-foreground leading-relaxed overflow-x-auto max-h-80">
+                                            {msg.html ? (
+                                              <iframe
+                                                srcDoc={msg.html}
+                                                title={msg.subject || 'Email'}
+                                                className="w-full h-64 border-0 rounded bg-white"
+                                                sandbox="allow-same-origin"
+                                              />
+                                            ) : (
+                                              <pre className="font-mono whitespace-pre-wrap text-xs text-muted-foreground">
+                                                {msg.text || msg.body || '(Empty message body)'}
+                                              </pre>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
                                 </div>
                               )
                             })}
