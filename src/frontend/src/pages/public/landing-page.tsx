@@ -12,12 +12,14 @@ import {
   Trash2,
   Code,
   Check,
-  Eye,
   Inbox,
   Terminal,
   ArrowRight,
   AtSign,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Maximize2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -111,6 +113,7 @@ export function LandingPage() {
   const [selectedDomain, setSelectedDomain] = useState<string>('')
   const [copied, setCopied] = useState(false)
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
+  const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null)
   const [msgTab, setMsgTab] = useState<'html' | 'text' | 'raw'>('html')
 
   const messagesQuery = useInboxMessages(activeAddress)
@@ -339,9 +342,9 @@ export function LandingPage() {
                 </form>
 
                 {/* LIVE MESSAGES INBOX SECTION */}
-                <div className="pt-4 border-t border-border/60 space-y-4">
+                <div className="inbox-workspace pt-4 border-t border-border/60 space-y-4">
                   {/* Session Inboxes Switcher & Status Header */}
-                  <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="inbox-workspace-header flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <Inbox className="w-4 h-4 text-primary" />
                       <strong className="text-sm font-bold">Session Inboxes ({sessionInboxes.data?.length || 0})</strong>
@@ -353,12 +356,12 @@ export function LandingPage() {
 
                   {/* Active Inboxes Chips Switcher */}
                   {sessionInboxes.data && sessionInboxes.data.length > 0 && (
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                    <div className="inbox-address-list flex items-center gap-2 overflow-x-auto pb-1">
                       {sessionInboxes.data.map(item => (
                         <div
                           key={item.address}
                           onClick={() => setActiveAddress(item.address)}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono cursor-pointer transition-all shrink-0 ${
+                          className={`inbox-address-item flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono cursor-pointer transition-all shrink-0 ${
                             item.address === activeAddress
                               ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                               : 'border-border bg-background hover:bg-muted/50 text-muted-foreground'
@@ -389,7 +392,7 @@ export function LandingPage() {
                   )}
 
                   {/* Messages Feed Box */}
-                  <div className="rounded-xl border border-border bg-background/50 min-h-55 max-h-90 overflow-y-auto">
+                  <div className="inbox-message-pane rounded-xl border border-border bg-background/50 min-h-55 max-h-90 overflow-y-auto">
                     {messagesQuery.isLoading ? (
                       <div className="p-8 text-center text-sm text-muted-foreground">Loading inbox messages…</div>
                     ) : !messagesQuery.data || messagesQuery.data.length === 0 ? (
@@ -401,32 +404,78 @@ export function LandingPage() {
                         </p>
                       </div>
                     ) : (
-                      <div className="divide-y divide-border/60">
-                        {messagesQuery.data.map(msg => (
-                          <div
-                            key={msg.id}
-                            onClick={() => setSelectedMessage(msg)}
-                            className="p-4 hover:bg-muted/40 transition-colors cursor-pointer flex items-start justify-between gap-4 group"
-                          >
-                            <div className="space-y-1 min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-sm text-foreground truncate">{msg.fromAddress || msg.from}</span>
-                                <span className="text-[11px] text-muted-foreground shrink-0">
-                                  {new Date(msg.receivedAt || msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
+                      <div className="inbox-message-list divide-y divide-border/60">
+                        {messagesQuery.data.map(msg => {
+                          const isExpanded = expandedMessageId === msg.id
+                          return (
+                            <div
+                              key={msg.id}
+                              className="inbox-message-row border-b border-border/60 transition-colors"
+                            >
+                              <div
+                                onClick={() => setExpandedMessageId(isExpanded ? null : msg.id)}
+                                className="p-4 cursor-pointer flex items-start justify-between gap-4 group hover:bg-muted/40"
+                              >
+                                <div className="space-y-1 min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-sm text-foreground truncate">{msg.fromAddress || msg.from}</span>
+                                    <span className="text-[11px] text-muted-foreground shrink-0">
+                                      {new Date(msg.receivedAt || msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                  <h4 className="font-semibold text-xs text-primary group-hover:underline truncate">
+                                    {msg.subject || '(No Subject)'}
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground line-clamp-1">
+                                    {msg.text || msg.body || (msg.html ? 'Contains HTML formatting' : '(Empty message body)')}
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <Button
+                                    size="xs"
+                                    variant="ghost"
+                                    className="h-7 text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSelectedMessage(msg)
+                                    }}
+                                    title="Open modal dialog view"
+                                  >
+                                    <Maximize2 className="w-3.5 h-3.5 mr-1" /> Modal
+                                  </Button>
+                                  <Button size="xs" variant="ghost" className="h-7 w-7 p-0">
+                                    {isExpanded ? <ChevronUp className="w-4 h-4 text-primary" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                                  </Button>
+                                </div>
                               </div>
-                              <h4 className="font-semibold text-xs text-primary group-hover:underline truncate">
-                                {msg.subject || '(No Subject)'}
-                              </h4>
-                              <p className="text-xs text-muted-foreground line-clamp-1">
-                                {msg.text || msg.body || (msg.html ? 'Contains HTML formatting' : '(Empty message body)')}
-                              </p>
+
+                              {/* Accordion Inline Preview */}
+                              {isExpanded && (
+                                <div className="p-4 bg-muted/20 border-t border-border/40 space-y-3">
+                                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                    <span>From: <strong className="text-foreground">{msg.fromAddress || msg.from}</strong></span>
+                                    <span>{new Date(msg.receivedAt || msg.createdAt).toLocaleString()}</span>
+                                  </div>
+                                  <div className="rounded-lg border border-border bg-background p-3.5 text-xs text-foreground leading-relaxed overflow-x-auto max-h-80">
+                                    {msg.html ? (
+                                      <iframe
+                                        srcDoc={msg.html}
+                                        title={msg.subject || 'Email'}
+                                        className="w-full h-64 border-0 rounded bg-white"
+                                        sandbox="allow-same-origin"
+                                      />
+                                    ) : (
+                                      <pre className="font-mono whitespace-pre-wrap text-xs text-muted-foreground">
+                                        {msg.text || msg.body || '(Empty message body)'}
+                                      </pre>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <Button size="xs" variant="ghost" className="h-7 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Eye className="w-3.5 h-3.5 mr-1" /> Read
-                            </Button>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -641,7 +690,7 @@ export function LandingPage() {
 
       {/* MESSAGE READER MODAL */}
       <Dialog open={Boolean(selectedMessage)} onOpenChange={open => !open && setSelectedMessage(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col border-primary/40">
           <DialogHeader>
             <DialogTitle className="text-base font-bold truncate pr-6">{selectedMessage?.subject || '(No Subject)'}</DialogTitle>
             <DialogDescription className="text-xs flex items-center justify-between pt-1">

@@ -32,27 +32,31 @@
 }
 
 [data-theme="brutal"] {
-  --bg-main: oklch(0.95 0.05 90);
+  --bg-main: oklch(0.975 0.008 255);
   --bg-card: oklch(1 0 0);
-  --text-main: oklch(0.05 0 0);
-  --border-color: oklch(0.05 0 0);
-  --accent: oklch(0.85 0.25 140);
-  --accent-fg: oklch(0.05 0 0);
+  --bg-elevated: oklch(0.955 0.014 255);
+  --text-main: oklch(0.12 0.02 255);
+  --text-muted: oklch(0.48 0.035 255);
+  --border-color: oklch(0.15 0.02 255);
+  --accent: oklch(0.61 0.2 255);
+  --accent-hover: oklch(0.54 0.21 255);
+  --accent-soft: oklch(0.93 0.04 255);
+  --accent-fg: oklch(0.99 0 0);
   --radius-main: 0px;
-  --shadow-main: 4px 4px 0px oklch(0.05 0 0);
+  --shadow-main: 4px 4px 0px oklch(0.15 0.02 255);
 }
 
 [data-theme="brutal"].dark {
-  --bg-main: oklch(0.15 0 0);
-  --bg-card: oklch(0.2 0 0);
-  --bg-elevated: oklch(0.24 0 0);
-  --text-main: oklch(0.98 0 0);
-  --text-muted: oklch(0.76 0 0);
-  --border-color: oklch(0.98 0 0);
-  --accent: oklch(0.7 0.25 330);
-  --accent-hover: oklch(0.64 0.25 330);
-  --accent-soft: oklch(0.3 0.1 330);
-  --shadow-main: 4px 4px 0px oklch(0.98 0 0);
+  --bg-main: oklch(0.13 0.025 255);
+  --bg-card: oklch(0.18 0.03 255);
+  --bg-elevated: oklch(0.22 0.035 255);
+  --text-main: oklch(0.97 0.008 255);
+  --text-muted: oklch(0.69 0.035 255);
+  --border-color: oklch(0.67 0.18 255 / 0.5);
+  --accent: oklch(0.67 0.18 255);
+  --accent-hover: oklch(0.61 0.2 255);
+  --accent-soft: oklch(0.23 0.05 255);
+  --shadow-main: 4px 4px 0px oklch(0.67 0.18 255 / 0.35);
 }
 
 @theme inline {
@@ -170,6 +174,91 @@ body { background-color: var(--bg-main); color: var(--text-main); font-family: v
 
 .page-state { display: flex; align-items: center; justify-content: center; gap: 0.75rem; padding: 4rem; color: var(--text-muted); }
 .page-state.error { color: #ef4444; }
+
+@media (min-width: 768px) {
+  [data-theme="brutal"] .inbox-workspace {
+    display: grid;
+    grid-template-columns: minmax(13rem, 0.72fr) minmax(0, 1.8fr);
+    grid-template-rows: auto minmax(15rem, 1fr);
+    gap: 0;
+    overflow: hidden;
+    border: 2px solid var(--border-color);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-main);
+  }
+
+  [data-theme="brutal"] .inbox-workspace-header {
+    grid-column: 1 / -1;
+    padding: 0.85rem 1rem;
+    border-bottom: 2px solid var(--border-color);
+    background: var(--bg-elevated);
+  }
+
+  [data-theme="brutal"] .inbox-address-list {
+    min-width: 0;
+    max-height: 22.5rem;
+    padding: 0.75rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-right: 2px solid var(--border-color);
+    background: var(--bg-main);
+  }
+
+  [data-theme="brutal"] .inbox-address-item {
+    width: 100%;
+    min-width: 0;
+    justify-content: space-between;
+    padding: 0.75rem;
+    border-width: 2px;
+    box-shadow: none;
+  }
+
+  [data-theme="brutal"] .inbox-address-item:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 2px 2px 0 var(--border-color);
+  }
+
+  [data-theme="brutal"] .inbox-address-item > span:first-child {
+    min-width: 0;
+    max-width: none;
+    flex: 1;
+  }
+
+  [data-theme="brutal"] .inbox-message-pane {
+    min-width: 0;
+    min-height: 15rem;
+    max-height: 22.5rem;
+    border: 0;
+    border-radius: 0;
+    background: var(--bg-card);
+  }
+
+  [data-theme="brutal"] .inbox-message-row {
+    position: relative;
+    margin: 0.65rem;
+    padding: 0.9rem 1rem;
+    border: 2px solid var(--border-color);
+    background: var(--bg-main);
+    box-shadow: 3px 3px 0 var(--border-color);
+  }
+
+  [data-theme="brutal"] .inbox-message-row:hover {
+    transform: translate(-1px, -1px);
+    background: var(--accent-soft);
+    box-shadow: 4px 4px 0 var(--border-color);
+  }
+
+  [data-theme="brutal"] .inbox-message-list {
+    padding-bottom: 0.1rem;
+  }
+
+  [data-theme="brutal"] .inbox-message-list > :not(:last-child) {
+    border-bottom: 2px solid var(--border-color);
+  }
+}
 
 .route-loader { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.25rem; padding: 1.5rem; background: var(--bg-main); color: var(--text-main); opacity: 0; animation: route-loader-reveal 120ms cubic-bezier(0.16, 1, 0.3, 1) 180ms forwards; }
 .route-loader-mark { position: relative; width: 5rem; height: 4rem; display: grid; place-items: end center; }
