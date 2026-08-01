@@ -16,13 +16,7 @@ import { getOrCreatePublicSession, randomString } from './shared'
 
 const publicApi = new Hono<{ Bindings: Env }>()
 
-/**
- * Satu sumber kebenaran untuk domain publik.
- *
- * GET /config dan POST /inboxes dulu memfilter domain secara terpisah dengan aturan
- * berbeda (case-insensitive vs case-sensitive), sehingga domain yang tampil di config
- * bisa ditolak saat dipakai. Keduanya kini memakai helper ini.
- */
+/** Sumber tunggal filter domain publik untuk GET /config dan POST /inboxes. */
 export function parsePublicDomains(mailDomainsStr: string, allowedDomainsStr: string) {
   const all = mailDomainsStr.split(',').map(d => d.trim()).filter(Boolean)
   const isWildcard = !allowedDomainsStr || allowedDomainsStr.trim() === '' || allowedDomainsStr.trim() === '*'
@@ -32,15 +26,13 @@ export function parsePublicDomains(mailDomainsStr: string, allowedDomainsStr: st
     isWildcard || allowList.length === 0 || allowList.includes(value.trim().toLowerCase())
 
   const filtered = all.filter(isAllowed)
-  // Kalau filter menyisakan nol domain, setting-nya keliru; jatuh kembali ke semua
-  // domain daripada membuat pembuatan inbox mustahil.
+  // Allowlist yang tak cocok satu pun dianggap keliru; jangan sampai inbox mustahil dibuat.
   const selectable = filtered.length > 0 ? filtered : all
 
   return {
     all,
     selectable,
     isAllowed,
-    /** Domain final untuk sebuah request; `requested` boleh kosong (auto-generate). */
     resolve(requested?: string): string {
       const trimmed = requested?.trim()
       const matched = trimmed

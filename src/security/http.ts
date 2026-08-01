@@ -14,11 +14,9 @@ const BASE_CSP = [
   'upgrade-insecure-requests',
 ]
 
-// Halaman server-rendered (/legacy) masih memakai 76 inline handler (onclick/onchange)
-// dan blok <script> inline, jadi script-src wajib 'unsafe-inline'. Nonce tidak menolong
-// karena nonce tidak berlaku untuk atribut event handler.
-// ponytail: 'unsafe-inline' menahan proteksi XSS di halaman legacy. Upgrade path: pindahkan
-// inline handler ke addEventListener pada asset same-origin, lalu hapus 'unsafe-inline'.
+// ponytail: halaman /legacy masih memakai inline handler, jadi script-src wajib
+// 'unsafe-inline' (nonce tidak berlaku untuk atribut event). Upgrade path: pindahkan
+// ke addEventListener pada asset same-origin, lalu hapus 'unsafe-inline'.
 const PAGE_CSP = [
   ...BASE_CSP,
   "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
@@ -27,8 +25,7 @@ const PAGE_CSP = [
   "frame-src 'self' https://challenges.cloudflare.com",
 ].join('; ')
 
-// Response data (JSON API, security.txt) tidak pernah butuh sumber aktif apa pun.
-// /dashboard/* adalah API admin JSON (lihat src/api/routes.ts), bukan halaman.
+// Response data (JSON API, security.txt) tidak butuh sumber aktif apa pun.
 const DATA_CSP = [
   ...BASE_CSP,
   "script-src 'none'",
@@ -43,8 +40,7 @@ function cspFor(path: string): string {
   return DATA_PREFIXES.some(prefix => path.startsWith(prefix)) ? DATA_CSP : PAGE_CSP
 }
 
-// /dashboard/* adalah API admin JSON (lihat src/api/routes.ts), bukan halaman, jadi
-// ikut mendapat no-store dan proteksi method/content-type seperti /api/*.
+// /dashboard/* adalah API admin JSON (lihat src/api/routes.ts), bukan halaman.
 export function isApiPath(path: string): boolean {
   return path.startsWith('/api/') || path.startsWith('/dashboard/')
 }

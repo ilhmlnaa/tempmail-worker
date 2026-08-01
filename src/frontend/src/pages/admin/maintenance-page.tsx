@@ -17,14 +17,7 @@ function localDate(value: string) {
     : new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 }
 
-/**
- * Ubah nilai <input type="datetime-local"> menjadi ISO UTC eksplisit.
- *
- * Input datetime-local menghasilkan string tanpa zona ("2026-08-01T14:41"), yang
- * ditafsirkan sebagai waktu lokal browser. Worker berjalan di UTC, jadi mengirim
- * string mentah membuat `new Date(...)` di server menganggapnya UTC dan waktunya
- * bergeser sebesar offset admin setiap kali disimpan.
- */
+/** datetime-local tidak menyertakan zona; worker di UTC akan salah menafsirkannya. */
 function toUtcIso(value: string) {
   if (!value) return ''
   const date = new Date(value)
@@ -58,7 +51,14 @@ export function MaintenancePage() {
 
   const set = (key: string, value: string) => setValues(prev => ({ ...prev, [key]: value }))
 
-  // Waktu dikirim sebagai ISO UTC agar tidak bergeser saat di-parse worker.
+  // Waktu mulai di masa lalu + toggle aktif = situs langsung down begitu disimpan.
+  const startsAt = values.maintenance_start_at ? new Date(values.maintenance_start_at) : null
+  const willActivateOnSave =
+    values.maintenance_enabled === 'enabled' &&
+    !!startsAt &&
+    !Number.isNaN(startsAt.getTime()) &&
+    startsAt.getTime() <= Date.now()
+
   const payload = (extra?: Record<string, string>) => ({
     ...values,
     maintenance_start_at: toUtcIso(values.maintenance_start_at || ''),
@@ -170,6 +170,12 @@ export function MaintenancePage() {
                 value={values.maintenance_start_at || ''}
                 onChange={e => set('maintenance_start_at', e.target.value)}
               />
+              {willActivateOnSave && (
+                <p className="flex items-start gap-1.5 text-xs text-amber-500 pt-0.5">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                  <span>This start time is in the past, so saving takes the site down immediately.</span>
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">

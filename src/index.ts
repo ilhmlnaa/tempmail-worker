@@ -36,7 +36,16 @@ const app = new Hono<{ Bindings: Env }>()
 app.use('*', securityMiddleware)
 
 app.use('*', async (c, next) => {
-  const isBypassedPath = c.req.path.startsWith('/legacy/admin') || c.req.path.startsWith('/auth') || c.req.path.startsWith('/vendor/') || c.req.path === '/legacy/setup' || c.req.path === '/legacy/styles.css' || c.req.path === '/legacy/logo.png' || c.req.path === '/.well-known/security.txt'
+  const path = c.req.path
+  // Jalur admin harus tetap hidup agar maintenance bisa dimatikan dari UI.
+  // /api/config dikecualikan agar SPA tahu sedang maintenance dan bisa merendernya.
+  const isAdminPath =
+    path.startsWith('/legacy/admin') ||
+    path.startsWith('/api/admin') ||
+    path.startsWith('/dashboard') ||
+    path.startsWith('/api/settings') ||
+    path.startsWith('/auth')
+  const isBypassedPath = isAdminPath || path === '/api/config' || path.startsWith('/vendor/') || path === '/legacy/setup' || path === '/legacy/styles.css' || path === '/legacy/logo.png' || path === '/.well-known/security.txt'
   if (!isBypassedPath) {
     const { getMaintenanceConfig } = await import('./db/queries')
     const config = await getMaintenanceConfig(c.env.DB)

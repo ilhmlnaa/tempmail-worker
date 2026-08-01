@@ -50,8 +50,7 @@ export function InboxPage({ address, messages, timezone = 'Asia/Jakarta', timeFo
       const senderName = msg.from.replace(/<.*>/, '').trim().replace(/"/g, '') || msg.from
       const senderEmail = (msg.from.match(/<(.+)>/) || [,msg.from])[1]
       const initial = senderName.charAt(0).toUpperCase()
-      // Sanitasi harus setelah decodeQP: payload seperti =3Cscript=3E baru menjadi
-      // <script> setelah decode, jadi sanitasi sebelum decode bisa dilewati.
+      // Sanitasi wajib setelah decodeQP: =3Cscript=3E baru jadi <script> setelah decode.
       const htmlDecoded = msg.html ? sanitizeHtmlEmail(decodeQP(msg.html)) : null
       const bodyDecoded = decodeQP(msg.body)
 
@@ -86,9 +85,7 @@ export function InboxPage({ address, messages, timezone = 'Asia/Jakarta', timeFo
           <div class="msg-viewport">
             <div class="msg-view active" id="view-rendered-${i}">
               ${htmlDecoded
-                /* srcdoc disanitasi server-side oleh sanitizeHtmlEmail (setelah decodeQP).
-                   sandbox tanpa allow-scripts mencegah eksekusi script sebagai lapisan kedua.
-                   referrerpolicy="no-referrer" mencegah target melihat URL kita. */
+                /* Disanitasi server-side; sandbox tanpa allow-scripts jadi lapisan kedua. */
                 ? html`<div class="iframe-wrapper"><iframe data-html="${encodeURIComponent(htmlDecoded)}" sandbox="allow-popups" referrerpolicy="no-referrer" class="msg-iframe" id="iframe-${i}"></iframe></div>`
                 : html`<div class="msg-plain">${escape(bodyDecoded)}</div>`
               }

@@ -156,8 +156,7 @@ export function MaintenanceSettingsPage({
         btn.disabled = true;
         btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm spin-anim"></i> Saving...';
 
-        // datetime-local menghasilkan string tanpa zona; worker berjalan di UTC,
-        // jadi kirim ISO eksplisit supaya waktunya tidak bergeser saat disimpan.
+        // datetime-local tidak menyertakan zona; worker di UTC akan salah menafsirkannya.
         const toUtcIso = (value) => {
           if (!value) return '';
           const date = new Date(value);

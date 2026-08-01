@@ -409,4 +409,52 @@ import { parseInstant } from './api/routes/settings'
   console.log('PASS: maintenance time round-trip')
 }
 
+// ─── 13. Maintenance admin lockout ──────────────────────────────
+
+{
+  // Regresi: saat maintenance aktif, jalur admin sempat 503 sehingga panel admin
+  // mengunci dirinya sendiri dan maintenance tak bisa dimatikan dari UI.
+  const active = {
+    maintenance_enabled: 'enabled',
+    maintenance_start_at: new Date(Date.now() - 3600000).toISOString(),
+    maintenance_end_at: new Date(Date.now() + 3600000).toISOString(),
+    maintenance_allow_api: 'disabled',
+  }
+  const env = {
+    ALLOWED_ORIGINS: 'https://voidmail.my.id',
+    DB: {
+      prepare: () => ({
+        all: async () => ({
+          results: Object.entries(active).map(([key, value]) => ({ key, value })),
+        }),
+        first: async () => null,
+        run: async () => ({ success: true }),
+        bind: () => ({
+          all: async () => ({ results: [] }),
+          first: async () => null,
+          run: async () => ({ success: true }),
+        }),
+      }),
+    },
+  } as any
+  const ctx = { waitUntil: () => {} } as any
+
+  const config = await getMaintenanceConfig(env.DB)
+  console.assert(config.status === 'active', 'test fixture puts system in active maintenance')
+  const publicRes = await app.fetch(new Request('https://voidmail.my.id/api/session'), env, ctx)
+  console.assert(publicRes.status === 503, 'public API returns 503 during maintenance')
+
+  // SPA membaca status maintenance dari /api/config; kalau ikut 503 halaman
+  // maintenance tidak pernah tampil dan landing tetap terbuka.
+  const cfgRes = await app.fetch(new Request('https://voidmail.my.id/api/config'), env, ctx)
+  console.assert(cfgRes.status !== 503, '/api/config stays reachable so the SPA can render maintenance')
+
+  for (const path of ['/api/admin/bootstrap', '/dashboard/inboxes', '/dashboard/apikeys']) {
+    const res = await app.fetch(new Request(`https://voidmail.my.id${path}`), env, ctx)
+    console.assert(res.status !== 503, `${path} must not be locked out by maintenance`)
+  }
+
+  console.log('PASS: maintenance keeps admin routes reachable')
+}
+
 console.log('\nAll checks passed.')

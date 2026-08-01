@@ -5,14 +5,7 @@ import { requireAuth } from '../auth'
 
 const settings = new Hono<{ Bindings: Env }>()
 
-/**
- * Parse waktu maintenance menjadi instant absolut.
- *
- * Worker berjalan di UTC, jadi string tanpa zona ("2026-08-01T14:41") akan dianggap
- * UTC dan menggeser waktu sebesar offset admin setiap kali disimpan. Klien kini
- * mengirim ISO dengan zona eksplisit; nilai tanpa zona ditolak daripada disimpan
- * dengan makna yang salah.
- */
+/** Worker berjalan di UTC, jadi nilai tanpa zona ditolak agar waktu tidak bergeser. */
 export function parseInstant(value: string): Date | null {
   const trimmed = value.trim()
   if (!trimmed) return null
@@ -74,7 +67,6 @@ const saveSettingsHandler = async (c: any) => {
     const endAt = String(body.maintenance_end_at || '')
     const start = startAt ? parseInstant(startAt) : null
     const end = endAt ? parseInstant(endAt) : null
-    // parseInstant mengembalikan null untuk nilai tak valid maupun tanpa zona waktu.
     if (startAt && !start) {
       return c.json({ error: 'Maintenance start time must include a timezone offset.' }, 400)
     }

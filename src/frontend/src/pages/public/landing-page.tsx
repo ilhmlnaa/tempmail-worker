@@ -186,8 +186,7 @@ export function LandingPage() {
   const domainsList = config.data?.domains || ['voidmail.my.id']
   const maintenance = config.data?.maintenance
 
-  // Rentang maintenance dalam waktu lokal pengunjung. Tanggal disembunyikan bila
-  // mulai dan selesai jatuh pada hari yang sama agar banner tetap ringkas.
+  // Tanggal disembunyikan bila mulai dan selesai jatuh pada hari yang sama.
   const maintenanceWindow = (() => {
     if (!maintenance?.startAt) return null
     const start = new Date(maintenance.startAt)
@@ -207,7 +206,6 @@ export function LandingPage() {
     }
   })()
 
-  // If system is under active maintenance, render public maintenance page
   if (maintenance?.status === 'active' && !maintenance.allowInboxReads) {
     return <PublicMaintenancePage />
   }
