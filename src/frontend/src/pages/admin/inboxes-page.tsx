@@ -104,7 +104,7 @@ export function InboxesPage() {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             {/* Search Input */}
-            <div className="relative flex-1 min-w-60">
+            <div className="relative flex-1 min-w-[min(15rem,100%)]">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search by address or domain..."
@@ -122,7 +122,7 @@ export function InboxesPage() {
 
             {/* Filter Dropdown & View Mode Switcher */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 min-w-45">
+              <div className="flex items-center gap-2 min-w-[min(11.25rem,100%)]">
                 <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
                 <Select
                   value={filter}

@@ -144,7 +144,7 @@ export function DashboardPage() {
       </section>
 
       {/* Analytics Charts Grid */}
-      <section className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))' }}>
+      <section className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))' }}>
         {/* Chart 1: System Activity Overview */}
         <Card className="chart-panel">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -332,7 +332,7 @@ export function DashboardPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] gap-3">
             {filteredDomains.map(d => {
               const count = data.metrics.domainStats?.[d] || 0
               const isCopied = copiedDomain === d
@@ -498,7 +498,7 @@ export function DashboardPage() {
               <Input
                 aria-label="Local part"
                 placeholder="Random prefix if empty"
-                className="flex-1 min-w-50"
+                className="flex-1 min-w-[min(12.5rem,100%)]"
                 value={local}
                 onChange={e => setLocal(e.target.value)}
               />
