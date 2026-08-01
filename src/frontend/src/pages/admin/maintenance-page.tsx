@@ -17,6 +17,20 @@ function localDate(value: string) {
     : new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 }
 
+/**
+ * Ubah nilai <input type="datetime-local"> menjadi ISO UTC eksplisit.
+ *
+ * Input datetime-local menghasilkan string tanpa zona ("2026-08-01T14:41"), yang
+ * ditafsirkan sebagai waktu lokal browser. Worker berjalan di UTC, jadi mengirim
+ * string mentah membuat `new Date(...)` di server menganggapnya UTC dan waktunya
+ * bergeser sebesar offset admin setiap kali disimpan.
+ */
+function toUtcIso(value: string) {
+  if (!value) return ''
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString()
+}
+
 export function MaintenancePage() {
   const bootstrap = useAdminBootstrap()
   const save = useSaveSettings()
@@ -44,9 +58,17 @@ export function MaintenancePage() {
 
   const set = (key: string, value: string) => setValues(prev => ({ ...prev, [key]: value }))
 
+  // Waktu dikirim sebagai ISO UTC agar tidak bergeser saat di-parse worker.
+  const payload = (extra?: Record<string, string>) => ({
+    ...values,
+    maintenance_start_at: toUtcIso(values.maintenance_start_at || ''),
+    maintenance_end_at: toUtcIso(values.maintenance_end_at || ''),
+    ...extra,
+  })
+
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    save.mutate(values, {
+    save.mutate(payload(), {
       onSuccess: () => toast.success('Maintenance settings saved successfully'),
       onError: err => toast.error(err.message)
     })
@@ -54,7 +76,7 @@ export function MaintenancePage() {
 
   const endNow = () =>
     save.mutate(
-      { ...values, maintenance_enabled: 'disabled' },
+      payload({ maintenance_enabled: 'disabled' }),
       {
         onSuccess: () => toast.success('Maintenance window ended'),
         onError: err => toast.error(err.message)

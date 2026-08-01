@@ -156,11 +156,19 @@ export function MaintenanceSettingsPage({
         btn.disabled = true;
         btn.innerHTML = '<i data-lucide="loader-2" class="icon-sm spin-anim"></i> Saving...';
 
+        // datetime-local menghasilkan string tanpa zona; worker berjalan di UTC,
+        // jadi kirim ISO eksplisit supaya waktunya tidak bergeser saat disimpan.
+        const toUtcIso = (value) => {
+          if (!value) return '';
+          const date = new Date(value);
+          return isNaN(date.getTime()) ? '' : date.toISOString();
+        };
+
         const payload = {
           maintenance_enabled: document.getElementById('cfg_maint_enabled').value,
           maintenance_show_banner: document.getElementById('cfg_maint_show_banner').value,
-          maintenance_start_at: document.getElementById('cfg_maint_start').value,
-          maintenance_end_at: document.getElementById('cfg_maint_end').value,
+          maintenance_start_at: toUtcIso(document.getElementById('cfg_maint_start').value),
+          maintenance_end_at: toUtcIso(document.getElementById('cfg_maint_end').value),
           maintenance_allow_api: document.getElementById('cfg_maint_allow_api').value,
           maintenance_allow_inbox_reads: document.getElementById('cfg_maint_allow_reads').value,
           maintenance_banner_title: document.getElementById('cfg_maint_banner_title').value,

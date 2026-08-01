@@ -131,12 +131,20 @@ export function LandingPage() {
         setActiveAddress(sessionInboxes.data[0].address)
       }
     } else if (sessionInboxes.data && sessionInboxes.data.length === 0 && !createInbox.isPending) {
-      // Auto-generate initial instant inbox
-      createInbox.mutate({}, {
-        onSuccess: res => setActiveAddress(res.address)
-      })
+      // Auto-generate initial instant inbox. Kirim domain eksplisit dari config yang
+      // sudah difilter server, dan tampilkan error agar kegagalan tidak menggantung
+      // sebagai spinner selamanya.
+      const defaultDomain = selectedDomain || config.data?.domains?.[0]
+      if (!defaultDomain) return
+      createInbox.mutate(
+        { domain: defaultDomain },
+        {
+          onSuccess: res => setActiveAddress(res.address),
+          onError: err => toast.error('Could not create inbox', { description: err.message }),
+        }
+      )
     }
-  }, [sessionInboxes.data])
+  }, [sessionInboxes.data, config.data, selectedDomain])
 
   const handleGenerateNew = () => {
     createInbox.mutate(
@@ -178,6 +186,27 @@ export function LandingPage() {
   const domainsList = config.data?.domains || ['voidmail.my.id']
   const maintenance = config.data?.maintenance
 
+  // Rentang maintenance dalam waktu lokal pengunjung. Tanggal disembunyikan bila
+  // mulai dan selesai jatuh pada hari yang sama agar banner tetap ringkas.
+  const maintenanceWindow = (() => {
+    if (!maintenance?.startAt) return null
+    const start = new Date(maintenance.startAt)
+    if (Number.isNaN(start.getTime())) return null
+    const end = maintenance.endAt ? new Date(maintenance.endAt) : null
+    const hasEnd = !!end && !Number.isNaN(end.getTime())
+    const sameDay = hasEnd && start.toDateString() === end!.toDateString()
+
+    const time = (value: Date) =>
+      value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const dayTime = (value: Date) =>
+      value.toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+
+    return {
+      start: dayTime(start),
+      end: hasEnd ? (sameDay ? time(end!) : dayTime(end!)) : null,
+    }
+  })()
+
   // If system is under active maintenance, render public maintenance page
   if (maintenance?.status === 'active' && !maintenance.allowInboxReads) {
     return <PublicMaintenancePage />
@@ -187,12 +216,31 @@ export function LandingPage() {
     <div className="min-h-screen flex flex-col bg-background text-foreground font-sans selection:bg-primary selection:text-primary-foreground">
       {/* Show advance banner ONLY when maintenance is scheduled in the future */}
       {maintenance?.status === 'scheduled' && maintenance.showBanner && (
-        <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 text-xs text-amber-300 flex items-center justify-center gap-2 font-medium z-50 relative">
-          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
-          <span>
-            <strong className="font-bold text-amber-200">{maintenance.bannerTitle}:</strong>{' '}
-            {maintenance.bannerMessage}
-          </span>
+        <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 text-xs text-amber-300 z-50 relative">
+          <div className="mx-auto max-w-7xl flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
+            <span className="flex items-center gap-2 font-medium">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+              <span>
+                <strong className="font-bold text-amber-200">{maintenance.bannerTitle}:</strong>{' '}
+                {maintenance.bannerMessage}
+              </span>
+            </span>
+
+            {maintenanceWindow && (
+              <span className="flex items-center gap-1.5 shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 font-mono text-[11px] leading-none text-amber-200">
+                <Clock className="w-3 h-3 text-amber-400 shrink-0" />
+                <time dateTime={maintenance.startAt}>{maintenanceWindow.start}</time>
+                {maintenanceWindow.end && (
+                  <>
+                    <span className="text-amber-400/60" aria-hidden="true">
+                      &rarr;
+                    </span>
+                    <time dateTime={maintenance.endAt}>{maintenanceWindow.end}</time>
+                  </>
+                )}
+              </span>
+            )}
+          </div>
         </div>
       )}
       <PublicHeader />
@@ -549,7 +597,8 @@ export function LandingPage() {
                         onSuccess: res => {
                           setActiveAddress(res.address)
                           toast.success(`Created inbox @${d}`, { description: res.address })
-                        }
+                        },
+                        onError: err => toast.error(err.message)
                       }
                     )
                   }}

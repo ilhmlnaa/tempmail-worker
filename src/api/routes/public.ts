@@ -16,20 +16,45 @@ import { getOrCreatePublicSession, randomString } from './shared'
 
 const publicApi = new Hono<{ Bindings: Env }>()
 
+/**
+ * Satu sumber kebenaran untuk domain publik.
+ *
+ * GET /config dan POST /inboxes dulu memfilter domain secara terpisah dengan aturan
+ * berbeda (case-insensitive vs case-sensitive), sehingga domain yang tampil di config
+ * bisa ditolak saat dipakai. Keduanya kini memakai helper ini.
+ */
+export function parsePublicDomains(mailDomainsStr: string, allowedDomainsStr: string) {
+  const all = mailDomainsStr.split(',').map(d => d.trim()).filter(Boolean)
+  const isWildcard = !allowedDomainsStr || allowedDomainsStr.trim() === '' || allowedDomainsStr.trim() === '*'
+  const allowList = allowedDomainsStr.split(',').map(d => d.trim().toLowerCase()).filter(Boolean)
+
+  const isAllowed = (value: string) =>
+    isWildcard || allowList.length === 0 || allowList.includes(value.trim().toLowerCase())
+
+  const filtered = all.filter(isAllowed)
+  // Kalau filter menyisakan nol domain, setting-nya keliru; jatuh kembali ke semua
+  // domain daripada membuat pembuatan inbox mustahil.
+  const selectable = filtered.length > 0 ? filtered : all
+
+  return {
+    all,
+    selectable,
+    isAllowed,
+    /** Domain final untuk sebuah request; `requested` boleh kosong (auto-generate). */
+    resolve(requested?: string): string {
+      const trimmed = requested?.trim()
+      const matched = trimmed
+        ? selectable.find(d => d.toLowerCase() === trimmed.toLowerCase())
+        : undefined
+      return matched || selectable[0] || all[0] || 'voidmail.my.id'
+    },
+  }
+}
+
 publicApi.get('/config', async (c) => {
   const domainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')
-  const allDomains = domainsStr.split(',').map(d => d.trim()).filter(Boolean)
-
   const allowedDomainsStr = await getSetting(c.env.DB, 'public_allowed_domains', '*')
-  let domains = allDomains
-
-  if (allowedDomainsStr && allowedDomainsStr !== '*' && allowedDomainsStr.trim() !== '') {
-    const allowedList = allowedDomainsStr.split(',').map(d => d.trim().toLowerCase()).filter(Boolean)
-    const filtered = allDomains.filter(d => allowedList.includes(d.toLowerCase()))
-    if (filtered.length > 0) {
-      domains = filtered
-    }
-  }
+  const domains = parsePublicDomains(domainsStr, allowedDomainsStr).selectable
 
   const retentionHours = parseInt(await getSetting(c.env.DB, 'cleanup_retention_hours', '24'), 10)
   const metrics = await getAppMetrics(c.env.DB)
@@ -112,8 +137,14 @@ publicApi.post('/inboxes', async (c) => {
     }
   }
 
-  const domains = (await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')).split(',').map(d => d.trim())
-  let domain = (body.domain && domains.includes(body.domain)) ? body.domain : (domains[0] || 'voidmail.my.id')
+  const mailDomainsStr = await getSetting(c.env.DB, 'mail_domains', c.env.MAIL_DOMAINS || 'voidmail.my.id')
+  // API key punya allowlist sendiri (dicek di bawah), jadi tidak dibatasi daftar publik.
+  const publicAllowedStr = apiKeyRecord
+    ? '*'
+    : await getSetting(c.env.DB, 'public_allowed_domains', '*')
+  const publicDomains = parsePublicDomains(mailDomainsStr, publicAllowedStr)
+  const domains = publicDomains.all
+  let domain = publicDomains.resolve(body.domain)
 
   if (!apiKeyRecord) {
     const { isTurnstileEnabled, requiresTurnstile, verifyTurnstileToken } = await import('../../security/turnstile')
@@ -138,8 +169,7 @@ publicApi.post('/inboxes', async (c) => {
 
     const publicAllowedDomainsStr = await getSetting(c.env.DB, 'public_allowed_domains', '*')
     if (publicAllowedDomainsStr !== '*') {
-      const allowedPublicDomains = publicAllowedDomainsStr.split(',').map(d => d.trim()).filter(Boolean)
-      if (!allowedPublicDomains.includes(domain)) {
+      if (!publicDomains.isAllowed(domain)) {
         return c.json({ error: `Domain @${domain} is not permitted for public temp mail.` }, 403)
       }
     }

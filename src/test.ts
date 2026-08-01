@@ -339,4 +339,74 @@ import { getMaintenanceConfig } from './db/queries'
   console.log('PASS: CSP enforcement and QP-decode sanitize order')
 }
 
+// ─── 11. Public domain selection ────────────────────────────────
+
+import { parsePublicDomains } from './api/routes/public'
+
+{
+  // Regresi: request tanpa `domain` (auto-generate di halaman home) sempat memilih
+  // mail_domains[0], yang bisa berupa domain terlarang lalu ditolak 403 oleh
+  // pemeriksaan berikutnya — halaman home gagal membuat inbox terus-menerus.
+  const mail = 'zenime.online,devnet.my.id,chitose.biz.id'
+  const allowed = 'devnet.my.id,chitose.biz.id'
+
+  const publicView = parsePublicDomains(mail, allowed)
+  console.assert(publicView.resolve() === 'devnet.my.id', 'empty request picks first allowed domain, not mail_domains[0]')
+  console.assert(publicView.isAllowed(publicView.resolve()), 'auto-generated domain is never self-rejected')
+  console.assert(!publicView.selectable.includes('zenime.online'), 'disallowed domain absent from selectable list')
+
+  // GET /config dan POST /inboxes wajib sepakat: yang tampil harus bisa dipakai.
+  for (const domain of publicView.selectable) {
+    console.assert(publicView.isAllowed(domain), `config domain ${domain} must be accepted by POST`)
+    console.assert(publicView.resolve(domain) === domain, `requesting ${domain} keeps that domain`)
+  }
+
+  const cased = parsePublicDomains(mail, 'DevNet.My.ID')
+  console.assert(cased.resolve('devnet.my.id') === 'devnet.my.id', 'domain match is case-insensitive')
+  console.assert(cased.isAllowed('DEVNET.MY.ID'), 'allow check is case-insensitive')
+
+  const forbidden = publicView.resolve('zenime.online')
+  console.assert(forbidden === 'devnet.my.id', 'disallowed request falls back to an allowed domain')
+
+  const wildcard = parsePublicDomains(mail, '*')
+  console.assert(wildcard.resolve() === 'zenime.online', 'wildcard keeps mail_domains order')
+  console.assert(wildcard.selectable.length === 3, 'wildcard exposes every domain')
+
+  // Setting keliru (tidak ada yang cocok) tidak boleh membuat inbox mustahil dibuat.
+  const stale = parsePublicDomains(mail, 'not-a-domain.test')
+  console.assert(stale.resolve() === 'zenime.online', 'unmatched allowlist falls back to all domains')
+
+  console.log('PASS: public domain selection')
+}
+
+// ─── 12. Maintenance time round-trip ─────────────────────────────
+
+import { parseInstant } from './api/routes/settings'
+
+{
+  // Regresi: frontend mengirim nilai datetime-local mentah ("2026-08-01T14:41").
+  // Worker berjalan di UTC sehingga menganggapnya UTC, dan waktu bergeser sebesar
+  // offset admin setiap kali disimpan.
+  console.assert(parseInstant('2026-08-01T14:41') === null, 'value without timezone is rejected')
+  console.assert(parseInstant('') === null, 'empty value yields null')
+  console.assert(parseInstant('   ') === null, 'blank value yields null')
+  console.assert(parseInstant('not-a-date') === null, 'garbage value yields null')
+  console.assert(parseInstant('2026-13-45T99:99Z') === null, 'impossible date yields null')
+
+  const utc = parseInstant('2026-08-01T07:41:00.000Z')
+  console.assert(utc?.toISOString() === '2026-08-01T07:41:00.000Z', 'UTC value round-trips unchanged')
+
+  // 14:41+07:00 adalah instant yang sama dengan 07:41Z — inilah yang kini dikirim klien.
+  const offset = parseInstant('2026-08-01T14:41:00+07:00')
+  console.assert(offset?.toISOString() === '2026-08-01T07:41:00.000Z', 'offset value converts to correct instant')
+  console.assert(offset?.getTime() === utc?.getTime(), 'offset and UTC forms agree')
+
+  // Menyimpan berulang kali tidak boleh menggeser waktu.
+  let value = '2026-08-01T14:41:00+07:00'
+  for (let i = 0; i < 3; i++) value = parseInstant(value)!.toISOString()
+  console.assert(value === '2026-08-01T07:41:00.000Z', 'repeated saves keep the same instant')
+
+  console.log('PASS: maintenance time round-trip')
+}
+
 console.log('\nAll checks passed.')

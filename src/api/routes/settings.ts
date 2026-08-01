@@ -5,6 +5,23 @@ import { requireAuth } from '../auth'
 
 const settings = new Hono<{ Bindings: Env }>()
 
+/**
+ * Parse waktu maintenance menjadi instant absolut.
+ *
+ * Worker berjalan di UTC, jadi string tanpa zona ("2026-08-01T14:41") akan dianggap
+ * UTC dan menggeser waktu sebesar offset admin setiap kali disimpan. Klien kini
+ * mengirim ISO dengan zona eksplisit; nilai tanpa zona ditolak daripada disimpan
+ * dengan makna yang salah.
+ */
+export function parseInstant(value: string): Date | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(trimmed)
+  if (!hasZone) return null
+  const date = new Date(trimmed)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 const saveSettingsHandler = async (c: any) => {
   const sid = await requireAuth(c)
   if (typeof sid === 'object') return sid
@@ -55,12 +72,18 @@ const saveSettingsHandler = async (c: any) => {
   if (hasMaintenanceSettings) {
     const startAt = String(body.maintenance_start_at || '')
     const endAt = String(body.maintenance_end_at || '')
-    const start = startAt ? new Date(startAt) : null
-    const end = endAt ? new Date(endAt) : null
-    if (body.maintenance_enabled === 'enabled' && (!start || Number.isNaN(start.getTime()))) {
+    const start = startAt ? parseInstant(startAt) : null
+    const end = endAt ? parseInstant(endAt) : null
+    // parseInstant mengembalikan null untuk nilai tak valid maupun tanpa zona waktu.
+    if (startAt && !start) {
+      return c.json({ error: 'Maintenance start time must include a timezone offset.' }, 400)
+    }
+    if (endAt && !end) {
+      return c.json({ error: 'Maintenance end time must include a timezone offset.' }, 400)
+    }
+    if (body.maintenance_enabled === 'enabled' && !start) {
       return c.json({ error: 'A valid maintenance start time is required.' }, 400)
     }
-    if (end && Number.isNaN(end.getTime())) return c.json({ error: 'Invalid maintenance end time.' }, 400)
     if (start && end && start >= end) return c.json({ error: 'Maintenance end time must be after start time.' }, 400)
 
     const fields: Record<string, { key: string; max: number }> = {
@@ -77,8 +100,8 @@ const saveSettingsHandler = async (c: any) => {
       }
     }
     await updateSetting(c.env.DB, 'maintenance_enabled', body.maintenance_enabled === 'enabled' ? 'enabled' : 'disabled')
-    await updateSetting(c.env.DB, 'maintenance_start_at', startAt ? new Date(startAt).toISOString() : '')
-    await updateSetting(c.env.DB, 'maintenance_end_at', endAt ? new Date(endAt).toISOString() : '')
+    await updateSetting(c.env.DB, 'maintenance_start_at', start ? start.toISOString() : '')
+    await updateSetting(c.env.DB, 'maintenance_end_at', end ? end.toISOString() : '')
     await updateSetting(c.env.DB, 'maintenance_show_banner', body.maintenance_show_banner === 'disabled' ? 'disabled' : 'enabled')
     await updateSetting(c.env.DB, 'maintenance_allow_api', body.maintenance_allow_api === 'enabled' ? 'enabled' : 'disabled')
     await updateSetting(c.env.DB, 'maintenance_allow_inbox_reads', body.maintenance_allow_inbox_reads === 'enabled' ? 'enabled' : 'disabled')
