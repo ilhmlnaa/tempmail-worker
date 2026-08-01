@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import type { Env } from '../../db/queries'
 import { createEmail, deleteEmail, emailExists, getAllEmails, getMessages, getSetting, linkEmailToSession } from '../../db/queries'
 import { generateAnimeLocalPart } from '../../email/address-generator'
+import { sanitizeHtmlEmail } from '../../email/sanitizer'
 import { requireAuth } from '../auth'
 import { randomString } from './shared'
 
@@ -85,7 +86,16 @@ adminInboxes.get('/:addr/messages', async (c) => {
   if (typeof sid === 'object') return sid
   const addr = decodeURIComponent(c.req.param('addr'))
   const msgs = await getMessages(c.env.DB, addr)
-  return c.json(msgs)
+  const allowExternalImages = c.req.query('images') === 'proxy'
+  return c.json(msgs.map((message: any) => ({
+    ...message,
+    html: message.html
+      ? sanitizeHtmlEmail(message.html, {
+          allowExternalImages,
+          imgCdnBaseUrl: c.env.IMGCDN_BASE_URL,
+        })
+      : null,
+  })))
 })
 
 export default adminInboxes

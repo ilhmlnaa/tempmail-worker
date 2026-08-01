@@ -7,8 +7,8 @@ VoidMail menerapkan transport, browser, CORS, dan cache hardening melalui `src/s
 - Request HTTP diarahkan permanen (`301`) ke URL HTTPS yang sama.
 - `localhost`, `127.0.0.1`, dan `[::1]` tidak diarahkan agar development lokal tetap bekerja.
 - Response menerima HSTS, MIME sniffing protection, referrer policy, permissions policy, opener policy, dan clickjacking protection.
-- CSP berjalan dalam mode `Content-Security-Policy-Report-Only` selama resource eksternal dan inline script masih digunakan.
-- Seluruh `/api/*` memakai `Cache-Control: no-store, private`, `Pragma: no-cache`, dan `Expires: 0`.
+- CSP berjalan dalam mode enforce (`Content-Security-Policy`), dengan policy berbeda per jenis response.
+- Seluruh `/api/*` dan `/dashboard/*` memakai `Cache-Control: no-store, private`, `Pragma: no-cache`, dan `Expires: 0`.
 - POST API harus menggunakan `Content-Type: application/json`.
 - Method di luar `GET`, `POST`, `DELETE`, dan `OPTIONS` ditolak dengan `405`.
 
@@ -41,22 +41,40 @@ Worker redirect adalah lapisan aplikasi. Aktifkan juga pengaturan edge berikut:
 4. Jangan mengaktifkan HSTS preload sebelum seluruh subdomain permanen HTTPS.
 5. Buat Cache Rule untuk bypass cache pada `URI Path starts with /api/`.
 
-## CSP rollout
+## CSP
 
-CSP saat ini masih report-only karena halaman menggunakan:
+CSP sudah enforce. Ada tiga policy terpisah karena response berasal dari dua lapisan berbeda:
 
-- inline script/style;
-- Lucide dari `unpkg.com`;
-- Google Fonts;
-- Cloudflare Turnstile.
+| Response | Sumber | script-src |
+| --- | --- | --- |
+| SPA root, `/assets/*`, `/vendor/*` | `src/frontend/public/_headers` | `'self'` |
+| Halaman `/legacy/*`, `/auth/*`, 404 | `src/security/http.ts` | `'self' 'unsafe-inline' https://challenges.cloudflare.com` |
+| `/api/*`, `/dashboard/*`, `/.well-known/*` | `src/security/http.ts` | `'none'` |
 
-Sebelum enforcement:
+`/dashboard/*` adalah API admin JSON (dimount di `src/api/routes.ts`), bukan halaman web.
+Karena itu ia mendapat CSP data, `Cache-Control: no-store, private`, dan proteksi
+method/content-type yang sama seperti `/api/*` — lihat `isApiPath()` di `src/security/http.ts`.
 
-1. Bundle Lucide dan dependency frontend lainnya.
-2. Pindahkan inline script/style ke asset same-origin atau gunakan nonce.
-3. Pantau CSP violation pada browser/endpoint reporting.
-4. Perbaiki violation yang valid.
-5. Ganti `Content-Security-Policy-Report-Only` menjadi `Content-Security-Policy`.
+**Penting:** header dari `_headers` tidak berlaku untuk response yang dihasilkan worker, dan
+sebaliknya. Root (`/`) dan `/assets/*` tidak melewati worker karena `run_worker_first` di
+`wrangler.toml` hanya mencakup `/api/*`, `/auth/*`, `/dashboard/*`, dan `/legacy/*`. Karena itu
+kedua file harus diubah bersamaan bila policy berubah.
+
+Halaman legacy masih memerlukan `'unsafe-inline'` pada `script-src` karena memakai inline event
+handler (`onclick`, `onchange`) dan blok `<script>` inline. Nonce tidak menyelesaikan ini karena
+nonce tidak berlaku untuk atribut event handler. Untuk menghapusnya:
+
+1. Pindahkan seluruh inline handler ke `addEventListener` pada asset same-origin.
+2. Pindahkan blok `<script>` inline ke file same-origin.
+3. Hapus `'unsafe-inline'` dari `script-src` di `PAGE_CSP`.
+
+`style-src` tetap memakai `'unsafe-inline'` di semua policy karena React dan komponen UI
+menyuntikkan style inline saat runtime.
+
+Cloudflare Browser Insights tidak aktif dan beacon-nya tidak ada di HTML. Bila nanti diaktifkan,
+tambahkan `https://static.cloudflareinsights.com` ke `script-src` **dan**
+`https://cloudflareinsights.com` ke `connect-src`, karena beacon mengirim POST ke
+`/cdn-cgi/rum`. Menambah `script-src` saja tidak cukup.
 
 ## Verification
 
@@ -70,6 +88,9 @@ curl -i -X PUT https://voidmail.my.id/api/session
 curl -i -X POST https://voidmail.my.id/api/inboxes \
   -H "Content-Type: text/plain" \
   --data '{}'
+curl -sI https://voidmail.my.id/ | grep -i content-security-policy
+curl -sI https://voidmail.my.id/legacy | grep -i content-security-policy
+curl -sI https://voidmail.my.id/dashboard/inboxes | grep -i cache-control
 ```
 
 Expected results:
@@ -79,3 +100,5 @@ Expected results:
 - Preflight origin resmi → `204`.
 - `PUT` → `405` dan header `Allow`.
 - POST non-JSON → `415`.
+- Root dan `/legacy` sama-sama mengembalikan `Content-Security-Policy` (bukan report-only).
+- `/dashboard/*` mengembalikan `Cache-Control: no-store, private`.

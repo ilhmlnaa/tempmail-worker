@@ -263,18 +263,17 @@ import { Layout } from './web/layout'
 import { getMaintenanceConfig } from './db/queries'
 
 {
+  // getMaintenanceConfig memakai getAllSettings() yang memanggil .all() tanpa bind().
   const dbMock = {
-    prepare: (sql: string) => ({
-      bind: (...args: any[]) => ({
-        first: async () => {
-          const key = args[0]
-          if (key === 'maintenance_enabled') return { value: 'enabled' }
-          if (key === 'maintenance_start_at') return { value: '2026-07-30T10:00:00.000Z' }
-          if (key === 'maintenance_end_at') return { value: '2026-07-30T12:00:00.000Z' }
-          return null
-        }
-      })
-    })
+    prepare: () => ({
+      all: async () => ({
+        results: [
+          { key: 'maintenance_enabled', value: 'enabled' },
+          { key: 'maintenance_start_at', value: '2026-07-30T10:00:00.000Z' },
+          { key: 'maintenance_end_at', value: '2026-07-30T12:00:00.000Z' },
+        ],
+      }),
+    }),
   } as any
 
   const scheduled = await getMaintenanceConfig(dbMock, new Date('2026-07-30T09:00:00.000Z'))
@@ -287,6 +286,57 @@ import { getMaintenanceConfig } from './db/queries'
   console.assert(expired.status === 'expired', 'past end date evaluates to expired')
 
   console.log('PASS: maintenance config logic')
+}
+
+// ─── 10. CSP enforcement & QP-decode sanitize order ───────────────
+
+{
+  // DB mock diperlukan karena middleware maintenance dan handler membaca settings.
+  const emptyRow = { results: [] as any[] }
+  const dbStub: any = {
+    prepare: () => ({
+      all: async () => emptyRow,
+      first: async () => null,
+      run: async () => ({ success: true }),
+      bind: () => ({
+        all: async () => emptyRow,
+        first: async () => null,
+        run: async () => ({ success: true }),
+      }),
+    }),
+  }
+  const env = { ALLOWED_ORIGINS: 'https://voidmail.my.id', DB: dbStub } as any
+  const ctx = { waitUntil: () => {} } as any
+
+  const pageRes = await app.fetch(new Request('https://voidmail.my.id/legacy/login'), env, ctx)
+  const pageCsp = pageRes.headers.get('Content-Security-Policy') || ''
+  console.assert(!pageRes.headers.get('Content-Security-Policy-Report-Only'), 'CSP no longer report-only')
+  console.assert(pageCsp.includes("default-src 'self'"), 'page CSP enforced')
+  console.assert(pageCsp.includes('https://challenges.cloudflare.com'), 'Turnstile allowed on legacy pages')
+
+  const apiRes = await app.fetch(new Request('https://voidmail.my.id/api/session'), env, ctx)
+  const apiCsp = apiRes.headers.get('Content-Security-Policy') || ''
+  console.assert(apiCsp.includes("script-src 'none'"), 'API responses forbid scripts')
+  console.assert(!apiCsp.includes("'unsafe-inline'"), 'API CSP has no unsafe-inline')
+
+  // /dashboard/* adalah API admin JSON: wajib no-store dan CSP data, bukan CSP halaman.
+  const dashRes = await app.fetch(new Request('https://voidmail.my.id/dashboard/inboxes'), env, ctx)
+  console.assert(dashRes.headers.get('Cache-Control') === 'no-store, private', 'admin API responses are not cacheable')
+  console.assert((dashRes.headers.get('Content-Security-Policy') || '').includes("script-src 'none'"), 'admin API uses data CSP')
+
+  const dashPut = await app.fetch(new Request('https://voidmail.my.id/dashboard/inboxes', { method: 'PUT' }), env, ctx)
+  console.assert(dashPut.status === 405, 'PUT /dashboard/inboxes -> 405')
+
+  // Payload quoted-printable harus tetap bersih: sanitasi berjalan setelah decode.
+  const qpPayload = '=3Cscript=3Ealert(1)=3C/script=3E=3Cimg src=3Dx onerror=3Dalert(2)=3E'
+  const decoded = qpPayload
+    .replace(/=\r?\n/g, '')
+    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+  const sanitized = sanitizeHtmlEmail(decoded)
+  console.assert(!sanitized.includes('<script'), 'QP-encoded script removed after decode')
+  console.assert(!sanitized.includes('onerror'), 'QP-encoded inline handler removed after decode')
+
+  console.log('PASS: CSP enforcement and QP-decode sanitize order')
 }
 
 console.log('\nAll checks passed.')

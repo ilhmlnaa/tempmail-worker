@@ -2,20 +2,52 @@ import type { Context, Next } from 'hono'
 import type { Env } from '../db/queries'
 
 const API_METHODS = new Set(['GET', 'POST', 'DELETE', 'OPTIONS'])
-const CSP = [
+
+const BASE_CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://challenges.cloudflare.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: https:",
-  "connect-src 'self' https://challenges.cloudflare.com",
-  "frame-src 'self' https://challenges.cloudflare.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
   'upgrade-insecure-requests',
+]
+
+// Halaman server-rendered (/legacy) masih memakai 76 inline handler (onclick/onchange)
+// dan blok <script> inline, jadi script-src wajib 'unsafe-inline'. Nonce tidak menolong
+// karena nonce tidak berlaku untuk atribut event handler.
+// ponytail: 'unsafe-inline' menahan proteksi XSS di halaman legacy. Upgrade path: pindahkan
+// inline handler ke addEventListener pada asset same-origin, lalu hapus 'unsafe-inline'.
+const PAGE_CSP = [
+  ...BASE_CSP,
+  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://challenges.cloudflare.com",
+  "connect-src 'self' https://challenges.cloudflare.com",
+  "frame-src 'self' https://challenges.cloudflare.com",
 ].join('; ')
+
+// Response data (JSON API, security.txt) tidak pernah butuh sumber aktif apa pun.
+// /dashboard/* adalah API admin JSON (lihat src/api/routes.ts), bukan halaman.
+const DATA_CSP = [
+  ...BASE_CSP,
+  "script-src 'none'",
+  "style-src 'none'",
+  "connect-src 'self'",
+  "frame-src 'none'",
+].join('; ')
+
+const DATA_PREFIXES = ['/api/', '/dashboard/', '/.well-known/']
+
+function cspFor(path: string): string {
+  return DATA_PREFIXES.some(prefix => path.startsWith(prefix)) ? DATA_CSP : PAGE_CSP
+}
+
+// /dashboard/* adalah API admin JSON (lihat src/api/routes.ts), bukan halaman, jadi
+// ikut mendapat no-store dan proteksi method/content-type seperti /api/*.
+export function isApiPath(path: string): boolean {
+  return path.startsWith('/api/') || path.startsWith('/dashboard/')
+}
 
 export function officialOrigins(env: Env): Set<string> {
   return new Set((env.ALLOWED_ORIGINS || '').split(',').map(origin => origin.trim()).filter(Boolean))
@@ -46,7 +78,7 @@ function applyCors(c: Context<{ Bindings: Env }>): void {
 
 function applySecurityHeaders(c: Context<{ Bindings: Env }>): void {
   c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-  c.header('Content-Security-Policy-Report-Only', CSP)
+  c.header('Content-Security-Policy', cspFor(c.req.path))
   c.header('X-Content-Type-Options', 'nosniff')
   c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
   c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()')
@@ -59,7 +91,7 @@ export async function securityMiddleware(c: Context<{ Bindings: Env }>, next: Ne
   if (redirect) return c.redirect(redirect, 301)
 
   applySecurityHeaders(c)
-  if (c.req.path.startsWith('/api/')) {
+  if (isApiPath(c.req.path)) {
     c.header('Cache-Control', 'no-store, private')
     c.header('Pragma', 'no-cache')
     c.header('Expires', '0')
@@ -88,5 +120,5 @@ export async function securityMiddleware(c: Context<{ Bindings: Env }>, next: Ne
 
   await next()
 
-  if (c.req.path.startsWith('/api/')) applyCors(c)
+  if (isApiPath(c.req.path)) applyCors(c)
 }
